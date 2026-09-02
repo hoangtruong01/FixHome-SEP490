@@ -1,6 +1,5 @@
-// src/screens/auth/LoginScreen.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import { colors, spacing, fontSize } from '../../constants';
 
 // TODO: Implement login form with email/password
@@ -10,6 +9,11 @@ import { colors, spacing, fontSize } from '../../constants';
 export default function LoginScreen() {
   return (
     <View style={styles.container}>
+      <Image
+        source={require('../../../assets/icon.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <Text style={styles.title}>FixHome</Text>
       <Text style={styles.subtitle}>Home Repair & Maintenance</Text>
       <View style={styles.placeholder}>
@@ -28,6 +32,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
     padding: spacing.lg,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: spacing.md,
   },
   title: {
     fontSize: fontSize.xxxl,

@@ -1,8 +1,15 @@
-# FixHome
+<p align="center">
+  <img src="docs/assets/logo.png" alt="FixHome Logo" width="160" />
+</p>
 
-> Home Repair & Maintenance Platform – Web + Mobile
+<h1 align="center">FixHome</h1>
 
-FixHome kết nối khách hàng với thợ kỹ thuật chuyên nghiệp cho dịch vụ sửa chữa và bảo trì tại nhà, hỗ trợ bởi AI chẩn đoán thông minh.
+<p align="center">
+  <strong>Home Repair & Maintenance Platform – Web + Mobile</strong><br>
+  <em>Nền tảng kết nối đặt lịch sửa chữa & bảo trì tại nhà, hỗ trợ bởi AI chẩn đoán thông minh.</em>
+</p>
+
+---
 
 ## Tech Stack
 

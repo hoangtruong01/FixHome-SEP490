@@ -1,8 +1,9 @@
 <template>
   <div class="bg-white rounded-lg shadow-md p-8">
     <div class="text-center mb-8">
+      <img src="../../assets/logo.png" alt="FixHome Logo" class="w-20 h-20 mx-auto mb-3 object-contain" />
       <h1 class="text-2xl font-bold text-gray-900">FixHome</h1>
-      <p class="text-gray-500 mt-2">Home Repair & Maintenance Platform</p>
+      <p class="text-gray-500 mt-1">Home Repair & Maintenance Platform</p>
     </div>
 
     <form class="space-y-4" @submit.prevent="handleLogin">

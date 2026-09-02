@@ -2,9 +2,12 @@
   <div class="min-h-screen flex">
     <!-- Sidebar -->
     <aside class="w-64 bg-gray-900 text-white flex flex-col">
-      <div class="p-4 border-b border-gray-700">
-        <h1 class="text-xl font-bold">FixHome</h1>
-        <p class="text-xs text-gray-400 mt-1">Admin Panel</p>
+      <div class="p-4 border-b border-gray-700 flex items-center gap-3">
+        <img src="../assets/logo.png" alt="FixHome Logo" class="w-9 h-9 rounded-lg bg-white p-1 object-contain" />
+        <div>
+          <h1 class="text-xl font-bold leading-none">FixHome</h1>
+          <p class="text-xs text-gray-400 mt-1">Admin Panel</p>
+        </div>
       </div>
       <nav class="flex-1 p-4">
         <router-link
