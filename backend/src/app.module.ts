@@ -2,6 +2,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
+import { validate } from './config';
+
+// Phase 0 — Bootstrap infrastructure
+import { SystemConfigModule } from './modules/system-config/system-config.module';
+import { RbacModule } from './modules/rbac/rbac.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
 
 // Feature modules
 import { AuthModule } from './modules/auth/auth.module';
@@ -20,6 +26,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { MediaModule } from './modules/media/media.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { HealthModule } from './modules/health/health.module';
+import { TechnicianVerificationsModule } from './modules/technician-verifications/technician-verifications.module';
 
 @Module({
   imports: [
@@ -27,10 +34,16 @@ import { HealthModule } from './modules/health/health.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate,
     }),
 
     // Database
     DatabaseModule,
+
+    // Phase 0 — Bootstrap infrastructure (global modules)
+    SystemConfigModule,
+    RbacModule,
+    AuditLogModule,
 
     // Feature modules
     AuthModule,
@@ -49,6 +62,8 @@ import { HealthModule } from './modules/health/health.module';
     MediaModule,
     DashboardModule,
     HealthModule,
+    TechnicianVerificationsModule,
   ],
 })
 export class AppModule {}
+

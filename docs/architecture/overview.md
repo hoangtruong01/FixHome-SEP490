@@ -2,7 +2,7 @@
 
 ## 1. System Architecture Diagram
 
-```
+```text
 +------------------------------------+         +--------------------------------------+
 |             Vue.js Web             |         |          React Native Mobile         |
 |  (Admin & Service Manager Portal)  |         |      (Customer & Technician App)     |
@@ -52,7 +52,7 @@
 
 ## 4. Lifecycle & State Machine của Service Order
 
-```
+```text
 [ PENDING_CONFIRMATION ] ──(Cancel)──> [ CANCELLED ] (Terminal)
           │
       (Accepted)

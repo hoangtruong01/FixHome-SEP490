@@ -1,0 +1,79 @@
+// src/shared/constants/error-codes.ts
+// Error code catalog — P4.2 of BUILD-BRIEF v2.0
+// Every error code used in the application must be defined here.
+// Web must use these same codes for error handling.
+
+export const ErrorCodes = {
+  // Auth
+  AUTH_INVALID_CREDENTIALS: 'AUTH_INVALID_CREDENTIALS',
+  AUTH_ACCOUNT_SUSPENDED: 'AUTH_ACCOUNT_SUSPENDED',
+
+  // RBAC
+  RBAC_FORBIDDEN: 'RBAC_FORBIDDEN',
+  OWNERSHIP_DENIED: 'OWNERSHIP_DENIED',
+
+  // Matching
+  SHORTLIST_LIMIT_EXCEEDED: 'SHORTLIST_LIMIT_EXCEEDED',
+  INVITATION_EXPIRED: 'INVITATION_EXPIRED',
+  INVITATION_ALREADY_TAKEN: 'INVITATION_ALREADY_TAKEN',
+
+  // Order state
+  ORDER_INVALID_TRANSITION: 'ORDER_INVALID_TRANSITION',
+  EVIDENCE_REQUIRED_BEFORE: 'EVIDENCE_REQUIRED_BEFORE',
+  EVIDENCE_REQUIRED_AFTER: 'EVIDENCE_REQUIRED_AFTER',
+
+  // Check-in
+  CHECKIN_OUT_OF_GEOFENCE: 'CHECKIN_OUT_OF_GEOFENCE',
+  CHECKIN_LOW_ACCURACY: 'CHECKIN_LOW_ACCURACY',
+
+  // Additional cost
+  ADDITIONAL_COST_ALREADY_DECIDED: 'ADDITIONAL_COST_ALREADY_DECIDED',
+  ADDITIONAL_COST_IMMUTABLE: 'ADDITIONAL_COST_IMMUTABLE',
+
+  // Warranty
+  WARRANTY_CANNOT_SHORTEN: 'WARRANTY_CANNOT_SHORTEN',
+
+  // Suspension
+  BOOKING_SUSPENDED: 'BOOKING_SUSPENDED',
+  WORK_SUSPENDED: 'WORK_SUSPENDED',
+
+  // AI
+  AI_UNAVAILABLE: 'AI_UNAVAILABLE',
+
+  // Generic
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  CONFLICT: 'CONFLICT',
+  NOT_FOUND: 'NOT_FOUND',
+  INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+} as const;
+
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
+
+/**
+ * Map of error codes to their default HTTP status codes.
+ * Used by the global exception filter for consistent status mapping.
+ */
+export const ErrorCodeHttpStatus: Record<string, number> = {
+  [ErrorCodes.AUTH_INVALID_CREDENTIALS]: 401,
+  [ErrorCodes.AUTH_ACCOUNT_SUSPENDED]: 403,
+  [ErrorCodes.RBAC_FORBIDDEN]: 403,
+  [ErrorCodes.OWNERSHIP_DENIED]: 404, // 404 not 403, to avoid revealing existence (P5.3)
+  [ErrorCodes.SHORTLIST_LIMIT_EXCEEDED]: 422,
+  [ErrorCodes.INVITATION_EXPIRED]: 409,
+  [ErrorCodes.INVITATION_ALREADY_TAKEN]: 409,
+  [ErrorCodes.ORDER_INVALID_TRANSITION]: 409,
+  [ErrorCodes.EVIDENCE_REQUIRED_BEFORE]: 409,
+  [ErrorCodes.EVIDENCE_REQUIRED_AFTER]: 409,
+  [ErrorCodes.CHECKIN_OUT_OF_GEOFENCE]: 422,
+  [ErrorCodes.CHECKIN_LOW_ACCURACY]: 422,
+  [ErrorCodes.ADDITIONAL_COST_ALREADY_DECIDED]: 409,
+  [ErrorCodes.ADDITIONAL_COST_IMMUTABLE]: 409,
+  [ErrorCodes.WARRANTY_CANNOT_SHORTEN]: 409,
+  [ErrorCodes.BOOKING_SUSPENDED]: 403,
+  [ErrorCodes.WORK_SUSPENDED]: 403,
+  [ErrorCodes.AI_UNAVAILABLE]: 503,
+  [ErrorCodes.VALIDATION_FAILED]: 422,
+  [ErrorCodes.CONFLICT]: 409,
+  [ErrorCodes.NOT_FOUND]: 404,
+  [ErrorCodes.INTERNAL_SERVER_ERROR]: 500,
+};

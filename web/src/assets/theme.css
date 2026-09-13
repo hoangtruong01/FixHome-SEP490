@@ -1,0 +1,102 @@
+/* src/assets/theme.css — Tailwind 4 theme block per P7.2 */
+@import "tailwindcss";
+
+@theme {
+  /* ---- Brand: warm orange ---- */
+  --color-brand-50:  #FFF6ED;
+  --color-brand-100: #FFE9D5;
+  --color-brand-200: #FED0A8;
+  --color-brand-300: #FDB170;
+  --color-brand-400: #FB8F3B;
+  --color-brand-500: #F2740C;
+  --color-brand-600: #DC5C06;   /* primary CTA */
+  --color-brand-700: #B64409;
+  --color-brand-800: #91370E;
+  --color-brand-900: #76300F;
+
+  /* ---- Neutral: warm-tinted ---- */
+  --color-ink-25:  #FCFBF9;
+  --color-ink-50:  #F7F5F2;     /* page background */
+  --color-ink-100: #EFECE7;
+  --color-ink-200: #E2DDD6;     /* border */
+  --color-ink-300: #CBC4BA;
+  --color-ink-400: #A69D91;     /* placeholder */
+  --color-ink-500: #7D7468;     /* text tertiary */
+  --color-ink-600: #5C554C;     /* text secondary */
+  --color-ink-700: #443E37;
+  --color-ink-800: #2B2722;
+  --color-ink-900: #1A1714;     /* text primary */
+
+  /* ---- Semantic ---- */
+  --color-success-50:  #E7F6F0;
+  --color-success-600: #0E8A5F;
+  --color-warning-50:  #FEF6E0;
+  --color-warning-600: #B07D00;
+  --color-danger-50:   #FEECEB;
+  --color-danger-600:  #D92D20;
+  --color-info-50:     #EAF1FE;
+  --color-info-600:    #175CD3;
+  --color-violet-50:   #F3EEFE;
+  --color-violet-600:  #6335D9;
+
+  /* ---- Radius: 3 bậc ---- */
+  --radius-sm: 8px;    /* badge, input, icon tile */
+  --radius-md: 14px;   /* card, button lớn */
+  --radius-lg: 20px;   /* modal, panel */
+
+  /* ---- Elevation: shadow ám ink, không dùng đen thuần ---- */
+  --shadow-e1: 0 1px 2px rgba(26,23,20,.05), 0 1px 3px rgba(26,23,20,.06);
+  --shadow-e2: 0 4px 8px rgba(26,23,20,.07), 0 2px 4px rgba(26,23,20,.05);
+  --shadow-e3: 0 16px 32px rgba(26,23,20,.12), 0 4px 8px rgba(26,23,20,.06);
+
+  /* ---- Type ---- */
+  --font-sans: "Be Vietnam Pro", system-ui, -apple-system, sans-serif;
+  --font-num:  "Space Grotesk", "Be Vietnam Pro", monospace;
+
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --text-2xl: 36px;
+}
+
+/* Custom Utilities for FixHome Typography and Micro-interactions */
+@layer utilities {
+  .font-num {
+    font-family: var(--font-num);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .text-display {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  .text-h1 {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  .text-h2 {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.35;
+  }
+
+  .text-overline {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .bg-status-repair {
+    background-color: var(--color-brand-50);
+    color: var(--color-brand-700);
+  }
+}

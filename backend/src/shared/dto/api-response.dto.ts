@@ -2,24 +2,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PaginationMeta {
-  @ApiProperty()
+  @ApiProperty({ example: 1 })
   page: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 10 })
   limit: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 50 })
   total: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 5 })
   totalPages: number;
 }
 
 export class ApiResponseDto<T> {
-  @ApiProperty()
+  @ApiProperty({ example: true })
+  success: boolean = true;
+
+  @ApiProperty({ example: 200 })
   statusCode: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Success' })
   message: string;
 
   @ApiPropertyOptional()
@@ -30,6 +33,7 @@ export class ApiResponseDto<T> {
 
   static success<T>(data: T, message = 'Success'): ApiResponseDto<T> {
     const response = new ApiResponseDto<T>();
+    response.success = true;
     response.statusCode = 200;
     response.message = message;
     response.data = data;
@@ -38,6 +42,7 @@ export class ApiResponseDto<T> {
 
   static created<T>(data: T, message = 'Created'): ApiResponseDto<T> {
     const response = new ApiResponseDto<T>();
+    response.success = true;
     response.statusCode = 201;
     response.message = message;
     response.data = data;
@@ -52,6 +57,7 @@ export class ApiResponseDto<T> {
     message = 'Success',
   ): ApiResponseDto<T[]> {
     const response = new ApiResponseDto<T[]>();
+    response.success = true;
     response.statusCode = 200;
     response.message = message;
     response.data = data;
@@ -63,4 +69,32 @@ export class ApiResponseDto<T> {
     };
     return response;
   }
+}
+
+export class ApiErrorDetailDto {
+  @ApiProperty({ example: 'VALIDATION_FAILED' })
+  code: string;
+
+  @ApiProperty({ example: 'Validation failed' })
+  message: string;
+
+  @ApiPropertyOptional({ example: ['email must be a valid email'] })
+  details?: unknown;
+}
+
+export class ApiErrorResponseDto {
+  @ApiProperty({ example: false })
+  success: boolean = false;
+
+  @ApiProperty({ example: 400 })
+  statusCode: number;
+
+  @ApiProperty({ type: ApiErrorDetailDto })
+  error: ApiErrorDetailDto;
+
+  @ApiProperty({ example: '2026-09-09T10:00:00.000Z' })
+  timestamp: string;
+
+  @ApiProperty({ example: '/api/v1/auth/register' })
+  path: string;
 }

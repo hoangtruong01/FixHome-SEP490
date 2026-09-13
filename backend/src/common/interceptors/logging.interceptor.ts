@@ -16,7 +16,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
-    const { method, url } = request;
+    const { method, path } = request;
     const now = Date.now();
 
     return next.handle().pipe(
@@ -24,7 +24,7 @@ export class LoggingInterceptor implements NestInterceptor {
         const response = context.switchToHttp().getResponse();
         const statusCode = response.statusCode;
         const duration = Date.now() - now;
-        this.logger.log(`${method} ${url} ${statusCode} - ${duration}ms`);
+        this.logger.log(`${method} ${path} ${statusCode} - ${duration}ms`);
       }),
     );
   }

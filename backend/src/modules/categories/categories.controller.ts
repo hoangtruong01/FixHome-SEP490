@@ -1,14 +1,28 @@
 // src/modules/categories/categories.controller.ts
-import { Controller } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param } from '@nestjs/common';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service';
 
-// TODO: Implement Categories endpoints
-
-@ApiTags('Categories')
-@Controller('categories')
+@ApiTags('Service Categories')
+@Controller(['service-categories', 'categories'])
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  // Placeholder – implement when feature is requested
+  @Get()
+  @ApiOperation({ summary: 'Public: List active service categories' })
+  @ApiResponse({ status: 200, description: 'Categories fetched successfully' })
+  async findAll() {
+    return this.categoriesService.findAll(true);
+  }
+
+  @Get(':idOrSlug')
+  @ApiOperation({ summary: 'Public: Get category details with services by ID or slug' })
+  @ApiResponse({
+    status: 200,
+    description: 'Category detail fetched successfully',
+  })
+  @ApiResponse({ status: 404, description: 'Category not found' })
+  async findByIdOrSlug(@Param('idOrSlug') idOrSlug: string) {
+    return this.categoriesService.findByIdOrSlug(idOrSlug, true);
+  }
 }

@@ -1,6 +1,5 @@
 # app/services/ai_provider.py
 from abc import ABC, abstractmethod
-from typing import Optional
 from app.schemas.diagnosis import (
     DiagnosisRequest,
     DiagnosisResponse,

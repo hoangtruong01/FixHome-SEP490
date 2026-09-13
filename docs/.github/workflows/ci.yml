@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development, develop]
+  pull_request:
+    branches: [main, development, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    name: Documentation quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Markdown check
+        run: npm run lint
+      - name: Broken local link check
+        run: npm run check:links
+      - name: Documentation governance validation
+        run: npm run validate

@@ -9,13 +9,26 @@ import { config } from 'dotenv';
 
 config(); // Load .env for CLI usage
 
+if (!process.env.DATABASE_PASSWORD?.trim())
+  throw new Error('DATABASE_PASSWORD is required for migrations');
+const databasePort = Number(process.env.DATABASE_PORT || 5432);
+if (!Number.isInteger(databasePort) || databasePort < 1 || databasePort > 65535)
+  throw new Error('Invalid DATABASE_PORT');
+if (
+  process.env.DATABASE_SSL &&
+  !['true', 'false'].includes(process.env.DATABASE_SSL)
+)
+  throw new Error('Invalid DATABASE_SSL');
+
 export default new DataSource({
   type: 'postgres',
   host: process.env.DATABASE_HOST || 'localhost',
-  port: Number(process.env.DATABASE_PORT) || 5432,
+  port: databasePort,
   username: process.env.DATABASE_USER || 'postgres',
-  password: process.env.DATABASE_PASSWORD || 'postgres',
+  password: process.env.DATABASE_PASSWORD,
   database: process.env.DATABASE_NAME || 'fixhome',
+  ssl:
+    process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false,
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
   migrationsTableName: 'migrations',

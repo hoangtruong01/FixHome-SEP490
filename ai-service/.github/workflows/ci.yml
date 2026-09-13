@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development, develop]
+  pull_request:
+    branches: [main, development, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  ai-service:
+    name: AI service quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: '.python-version'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check app tests
+      - name: Unit tests
+        run: pytest
+      - name: Import and compile check
+        run: |
+          python -c "from app.main import app; assert app.title == 'FixHome AI Service'"
+          python -m compileall -q app tests
+      - name: FastAPI startup validation
+        run: |
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          server_pid=$!
+          trap 'kill $server_pid' EXIT
+          for attempt in {1..10}; do
+            curl --fail --silent http://127.0.0.1:8000/health && exit 0
+            sleep 1
+          done
+          exit 1
+        env:
+          AI_PROVIDER: mock

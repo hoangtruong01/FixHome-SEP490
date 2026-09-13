@@ -5,7 +5,7 @@
 # FixHome — Project Documentation
 
 > **Single Source of Truth** for the FixHome Capstone Project.
-> Last updated: 2026-09-02 | Status: Initial Setup Complete
+> Last updated: 2026-09-04 | Status: Polyrepo Setup Verified
 
 ---
 
@@ -129,7 +129,7 @@ Homeowners face difficulty finding reliable, verified repair technicians. Existi
 
 ## 8. System Architecture
 
-```
+```text
 Web (Vue.js) ──────┐
                     │
 Mobile (Expo) ─────┼──► NestJS Backend API ──► PostgreSQL
@@ -142,6 +142,19 @@ Mobile (Expo) ─────┼──► NestJS Backend API ──► PostgreSQ
 - NestJS Backend is the **authoritative business layer** for all logic, validation, RBAC, and state management
 - AI Service is **advisory only** — it provides diagnosis suggestions but does not control business transactions
 - Web and Mobile **never call Gemini/OpenAI directly**
+
+### Repository Boundaries
+
+| Repository | Responsibility |
+|------------|----------------|
+| `Backend-FixHome` | NestJS API, TypeORM entities/migrations, PostgreSQL development setup |
+| `Frontend-FixHome` | Vue web client |
+| `Mobi-FixHome` | Expo mobile client |
+| `AI-FixHome` | FastAPI AI diagnosis service |
+| `Docs-FixHome` | Cross-system requirements, architecture, contracts, testing and governance |
+
+See [REPOSITORY_GUIDE.md](REPOSITORY_GUIDE.md) for clone layout, runtime versions, startup order,
+and cross-repository change coordination.
 
 ### Actor Platform Mapping
 | Actor | Primary Platform |
@@ -246,7 +259,7 @@ Mobile (Expo) ─────┼──► NestJS Backend API ──► PostgreSQ
 
 ## 17. AI Diagnosis Flow
 
-```
+```text
 Customer (Mobile/Web)
     │
     ├── description (text)
@@ -309,7 +322,7 @@ DiagnosisResponse {
 | **Key Data** | Service, time, address, description, AI result | Technician, status, quotation, evidence, timestamps |
 | **Status** | PENDING, CONFIRMED, CANCELLED | PENDING_CONFIRMATION, ACCEPTED, EN_ROUTE, UNDER_REPAIR, COMPLETED, CANCELLED |
 
-```
+```text
 Customer creates Booking
         ↓
 Booking validated / confirmed
@@ -336,7 +349,7 @@ Completion + Review
 | `CANCELLED` | Order cancelled (terminal) |
 
 ### Valid Transitions
-```
+```text
 PENDING_CONFIRMATION → ACCEPTED | CANCELLED
 ACCEPTED → EN_ROUTE | CANCELLED
 EN_ROUTE → UNDER_REPAIR
@@ -508,9 +521,9 @@ CANCELLED → (terminal)
 
 ### Backend
 - **Framework**: Vitest
-- **Current Tests**: 15 tests (State Machine) — all passing
+- **Current Tests**: 15 State Machine unit tests + 2 health E2E tests — all passing
 - **Lint**: OxLint — 0 warnings, 0 errors
-- **Build**: NestJS build — passing
+- **Build**: NestJS build — passing with deterministic output (incremental cache disabled for build)
 - **Target**: Unit tests for services, controllers, guards; integration tests for API; e2e tests
 
 ### Web
@@ -545,13 +558,13 @@ CANCELLED → (terminal)
 - **Web**: Static files from Vite build
 - **Mobile**: Expo build (EAS or Expo Go for development)
 - **AI Service**: Uvicorn ASGI server
-- **CI**: GitHub Actions (lint, test, build for all 4 projects)
+- **CI**: Independent GitHub Actions workflow in each executable repository
 
 ## 37. Architecture Decisions
 
 | Decision | Rationale |
 |----------|-----------|
-| Monorepo (4 projects) | Simplifies cross-project consistency for Capstone |
+| Five independent repositories | Clear ownership and independent CI; cross-system contracts remain centralized in Docs-FixHome |
 | NestJS modular architecture | One module per feature, clear separation |
 | TypeORM over Prisma | Team familiarity, NestJS native integration |
 | Vitest over Jest | Faster, modern, Vite-native |

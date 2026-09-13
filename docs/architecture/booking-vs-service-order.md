@@ -4,7 +4,7 @@
 
 Trong hệ thống FixHome, **Booking** và **Service Order** là 2 khái niệm thực thể tách biệt đại diện cho 2 giai đoạn khác nhau trong vòng đời dịch vụ:
 
-```
+```text
 +-------------------------------------------------------------------------+
 |                                GIAI ĐOẠN 1                              |
 |                    Customer Request & Scheduling (BOOKING)              |
@@ -55,7 +55,7 @@ Trong hệ thống FixHome, **Booking** và **Service Order** là 2 khái niệm
 
 ## 3. Quy tắc State Machine của Service Order
 
-```
+```text
 [ PENDING_CONFIRMATION ] ──(Customer/Manager Cancel)──> [ CANCELLED ] (Terminal)
           │
       (Accepted)

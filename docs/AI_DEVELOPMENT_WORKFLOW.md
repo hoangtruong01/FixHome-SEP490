@@ -32,8 +32,8 @@ Every feature, bug fix, or refactor task must be analyzed through **13 expert pe
 **Before writing any code**, read and understand:
 
 - [ ] Task description and requirements
-- [ ] `docs/PROJECT_DOCUMENTATION.md` — relevant sections
-- [ ] `docs/CURRENT_TASKS.md` — related or dependent tasks
+- [ ] `PROJECT_DOCUMENTATION.md` — relevant sections in Docs-FixHome
+- [ ] `CURRENT_TASKS.md` — related or dependent tasks in Docs-FixHome
 - [ ] Related source code (entities, DTOs, services, controllers)
 - [ ] Related API contracts (endpoints, request/response)
 - [ ] Related tests
@@ -284,7 +284,7 @@ Verify that Backend DTOs, Web API types, and Mobile API types are **consistent**
 
 QA/QC verifies the chain:
 
-```
+```text
 Requirement → Acceptance Criteria → Implementation → Database → API → Web/Mobile → Test
 ```
 
@@ -305,7 +305,7 @@ Check:
 
 Simulate User Acceptance Testing using Given-When-Then format:
 
-```
+```text
 Scenario: <description>
 
 Given:
@@ -332,8 +332,8 @@ And:
 
 After implementation, update:
 
-- [ ] `docs/PROJECT_DOCUMENTATION.md` — if architecture, requirements, API, database, state, RBAC, or workflow changed
-- [ ] `docs/CURRENT_TASKS.md` — mark completed tasks, add new tasks
+- [ ] `PROJECT_DOCUMENTATION.md` — if architecture, requirements, API, database, state, RBAC, or workflow changed
+- [ ] `CURRENT_TASKS.md` — mark completed tasks, add new tasks
 - [ ] Feature Traceability Matrix — update status
 - [ ] Inline code documentation (JSDoc, comments) if needed
 

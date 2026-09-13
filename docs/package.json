@@ -1,0 +1,14 @@
+{
+  "name": "fixhome-documentation",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "markdownlint-cli2 \"**/*.md\" \"#node_modules\"",
+    "check:links": "node scripts/validate-docs.mjs links",
+    "validate": "node scripts/validate-docs.mjs governance",
+    "test": "npm run lint && npm run check:links && npm run validate"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "0.18.1"
+  }
+}
