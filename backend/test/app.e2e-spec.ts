@@ -142,7 +142,7 @@ describe('Member 1 HTTP, PostgreSQL and migration gates', () => {
       logging: false,
     });
     await db.initialize();
-    expect(await db.runMigrations()).toHaveLength(3);
+    expect(await db.runMigrations()).toHaveLength(db.migrations.length);
     // Prove revert/reapply before exercising the migrated schema.
     await db.undoLastMigration();
     expect(await db.runMigrations()).toHaveLength(1);
@@ -751,7 +751,7 @@ describe('Member 1 HTTP, PostgreSQL and migration gates', () => {
   });
 
   it('reverts all migrations, adopts legacy users and preserves account state and timestamps', async () => {
-    for (let i = 0; i < 3; i++) await db.undoLastMigration();
+    for (let i = 0; i < db.migrations.length; i++) await db.undoLastMigration();
     await db.query(
       `CREATE TYPE users_role_enum AS ENUM ('customer','technician','service_manager','admin')`,
     );
@@ -763,7 +763,7 @@ describe('Member 1 HTTP, PostgreSQL and migration gates', () => {
       `INSERT INTO users (id,email,password_hash,full_name,phone_number,is_active,created_at) VALUES ($1,'LEGACY@EXAMPLE.TEST','preserved-hash','Legacy User','+84987654321',false,'2025-01-02 03:04:05')`,
       [legacyId],
     );
-    expect(await db.runMigrations()).toHaveLength(3);
+    expect(await db.runMigrations()).toHaveLength(db.migrations.length);
     const [legacy] = await db.query('SELECT * FROM users WHERE id = $1', [
       legacyId,
     ]);
@@ -780,10 +780,9 @@ describe('Member 1 HTTP, PostgreSQL and migration gates', () => {
       await db.query('SELECT id FROM users WHERE id = $1', [legacyId]),
     ).toHaveLength(1);
     expect(await db.runMigrations()).toHaveLength(1);
-    await db.undoLastMigration();
-    await db.undoLastMigration();
+    for (let i = 0; i < db.migrations.length - 1; i++) await db.undoLastMigration();
     await expect(db.undoLastMigration()).rejects.toThrow('Refusing to drop an adopted users table');
     expect(await db.query('SELECT id FROM users WHERE id = $1', [legacyId])).toHaveLength(1);
-    expect(await db.runMigrations()).toHaveLength(2);
+    expect(await db.runMigrations()).toHaveLength(db.migrations.length - 1);
   });
 });
