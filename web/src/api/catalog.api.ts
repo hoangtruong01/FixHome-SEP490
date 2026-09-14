@@ -21,6 +21,10 @@ export interface ServiceItem {
   code: string;
   slug?: string | null;
   description?: string | null;
+  pricingMode?: 'FIXED_PRICE' | 'INSPECTION_REQUIRED' | 'fixed_price' | 'inspection_required';
+  unit?: string | null;
+  fixedPrice?: number | null;
+  scopeDescription?: string | null;
   basePrice?: number | null;
   minPrice?: number | null;
   maxPrice?: number | null;

@@ -93,11 +93,11 @@ const selectedCount = computed(() => selectedIds.value.length);
       </div>
     </div>
 
-    <!-- Rule Banner (Baseline v2.0 Shortlist ≤5) -->
+    <!-- Rule Banner (Spec v1.2 Sequential Dispatch ≤5) -->
     <div class="p-3.5 rounded-[var(--radius-sm)] bg-brand-50/70 border border-brand-200 text-brand-900 flex items-start gap-2.5 text-xs">
       <ShieldCheck :size="16" class="text-brand-600 shrink-0 mt-0.5" />
       <div class="leading-relaxed">
-        <strong>Cơ chế ghép thợ công bằng (First-Accept Win):</strong> Lời mời sẽ được gửi đồng thời đến các thợ bạn chọn trong vòng 10 phút. Kỹ thuật viên đầu tiên xác nhận nhận đơn sẽ được hệ thống phân bổ chính thức, các lời mời còn lại tự động huỷ bỏ.
+        <strong>Cơ chế gửi lời mời tuần tự (Sequential Dispatch Spec v1.2):</strong> Hệ thống gửi lời mời lần lượt theo thứ tự ưu tiên của bạn. Thợ số 1 có 30 phút để xác nhận. Nếu từ chối hoặc hết giờ, hệ thống sẽ tự động chuyển sang thợ tiếp theo trong danh sách ưu tiên.
       </div>
     </div>
 
@@ -121,14 +121,20 @@ const selectedCount = computed(() => selectedIds.value.length);
             @change="toggleSelect(tech.id)"
           />
 
-          <div class="w-12 h-12 rounded-full bg-brand-700 text-white flex items-center justify-center font-bold text-base shrink-0 shadow-sm">
+          <div class="w-12 h-12 rounded-full bg-brand-700 text-white flex items-center justify-center font-bold text-base shrink-0 shadow-sm relative">
             {{ tech.fullName.charAt(0) }}
+            <span
+              v-if="selectedIds.includes(tech.id)"
+              class="absolute -top-1 -right-1 w-5 h-5 bg-brand-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+            >
+              #{{ selectedIds.indexOf(tech.id) + 1 }}
+            </span>
           </div>
 
           <div class="space-y-1">
             <div class="flex items-center gap-2">
               <h3 class="font-bold text-sm text-ink-900">{{ tech.fullName }}</h3>
-              <FhStatusPill status="COMPLETED" label="ĐÃ DUYỆT" />
+              <FhStatusPill status="COMPLETED" label="ĐÃ XÁC THỰC" />
             </div>
 
             <div class="flex flex-wrap items-center gap-3 text-xs text-ink-500">
@@ -137,11 +143,18 @@ const selectedCount = computed(() => selectedIds.value.length);
               </span>
               <span>•</span>
               <span class="flex items-center gap-1">
-                <Briefcase :size="13" class="text-ink-400" /> {{ tech.yearsExperience }} năm kinh nghiệm
+                <Briefcase :size="13" class="text-ink-400" /> {{ tech.yearsExperience }} năm KN
               </span>
-              <span>•</span>
-              <span class="flex items-center gap-1 text-brand-700 font-semibold font-num">
+              <span v-if="tech.distanceKm != null">•</span>
+              <span v-if="tech.distanceKm != null" class="flex items-center gap-1 text-brand-700 font-semibold font-num">
                 <MapPin :size="13" /> Cách ~{{ tech.distanceKm }} km
+              </span>
+            </div>
+
+            <div v-if="tech.listedLaborPrice" class="text-[11px] text-brand-800 font-medium pt-0.5">
+              Giá công tham chiếu: <strong class="font-num font-bold text-brand-900"><FhMoney :amount="tech.listedLaborPrice" /></strong>
+              <span v-if="tech.typicalWarrantyDays" class="text-ink-500 text-[10px] ml-1.5">
+                (BH cam kết {{ tech.typicalWarrantyDays }} ngày)
               </span>
             </div>
           </div>
@@ -158,7 +171,7 @@ const selectedCount = computed(() => selectedIds.value.length);
             size="sm"
             @click="toggleSelect(tech.id)"
           >
-            {{ selectedIds.includes(tech.id) ? 'Đã chọn' : 'Chọn thợ' }}
+            {{ selectedIds.includes(tech.id) ? `Ưu tiên #${selectedIds.indexOf(tech.id) + 1}` : 'Chọn thợ' }}
           </FhButton>
         </div>
       </div>

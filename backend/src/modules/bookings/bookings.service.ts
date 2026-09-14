@@ -13,7 +13,7 @@ import { Service } from '../services/entities/service.entity';
 import { Address } from '../users/entities/address.entity';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { ErrorCodes } from '../../shared/constants';
-import { BookingStatus, Role, UrgencyLevel } from '../../shared/enums';
+import { BookingStatus, Role, ServicePricingMode, UrgencyLevel } from '../../shared/enums';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { TechnicianProfile } from '../technicians/entities/technician-profile.entity';
 import { TechnicianSkill } from '../technicians/entities/technician-skill.entity';
@@ -24,6 +24,8 @@ export interface CreateBookingDto {
   addressId?: string;
   description: string;
   preferredAt?: string;
+  preferredTimeWindow?: string;
+  quantity?: number;
   urgency?: UrgencyLevel;
 }
 
@@ -36,6 +38,9 @@ export interface TechnicianCandidate {
   reliabilityScore: number;
   yearsExperience: number;
   isAvailable: boolean;
+  listedLaborPrice?: number | null;
+  typicalWarrantyDays?: number;
+  hasPriorityBoost?: boolean;
 }
 
 @Injectable()
@@ -94,12 +99,20 @@ export class BookingsService {
       }
     }
 
+    const isFixed = service.pricingMode === ServicePricingMode.FIXED_PRICE;
+    const quantity = Math.max(1, dto.quantity || 1);
+
     const booking = this.bookingRepo.create({
       customerId: customer.id,
       serviceId: dto.serviceId,
       addressId: dto.addressId || null,
       description: dto.description,
       preferredAt: dto.preferredAt ? new Date(dto.preferredAt) : null,
+      preferredTimeWindow: dto.preferredTimeWindow || null,
+      pricingModeSnapshot: service.pricingMode,
+      fixedUnitPriceSnapshot: isFixed ? (service.fixedPrice ?? service.basePrice ?? null) : null,
+      quantity,
+      scopeSnapshot: isFixed ? (service.scopeDescription || service.description || null) : null,
       urgency: dto.urgency || UrgencyLevel.MEDIUM,
       status: BookingStatus.PENDING,
     });
@@ -198,7 +211,7 @@ export class BookingsService {
     const qb = this.techProfileRepo
       .createQueryBuilder('tp')
       .innerJoinAndSelect('tp.user', 'user')
-      .innerJoin('tp.skills', 'skill', 'skill.serviceId = :serviceId', {
+      .innerJoinAndSelect('tp.skills', 'skill', 'skill.serviceId = :serviceId AND skill.isActive = true', {
         serviceId: booking.serviceId,
       })
       .where('tp.isAvailable = :available', { available: true })
@@ -221,22 +234,62 @@ export class BookingsService {
       );
     }
 
-    qb.orderBy('tp.averageRating', 'DESC')
+    // Spec v1.2: Priority Boost as soft ranking signal, followed by rating and reliability
+    qb.orderBy(
+      'CASE WHEN tp.priorityBoostUntil IS NOT NULL AND tp.priorityBoostUntil > :now THEN 1 ELSE 0 END',
+      'DESC',
+    )
+      .addOrderBy('tp.averageRating', 'DESC')
       .addOrderBy('tp.reliabilityScore', 'DESC')
       .take(20); // Return up to 20 candidates for customer to pick ≤5
 
     const profiles = await qb.getMany();
 
-    return profiles.map((tp) => ({
-      technicianId: tp.id,
-      userId: tp.userId,
-      fullName: tp.user?.fullName || '',
-      averageRating: Number(tp.averageRating),
-      ratingCount: tp.ratingCount,
-      reliabilityScore: tp.reliabilityScore,
-      yearsExperience: tp.yearsExperience,
-      isAvailable: tp.isAvailable,
-    }));
+    return profiles.map((tp) => {
+      const matchedSkill = tp.skills?.find((s) => s.serviceId === booking.serviceId);
+      return {
+        technicianId: tp.id,
+        userId: tp.userId,
+        fullName: tp.user?.fullName || '',
+        averageRating: Number(tp.averageRating),
+        ratingCount: tp.ratingCount,
+        reliabilityScore: tp.reliabilityScore,
+        yearsExperience: tp.yearsExperience,
+        isAvailable: tp.isAvailable,
+        hasPriorityBoost: Boolean(
+          tp.priorityBoostUntil && new Date(tp.priorityBoostUntil) > new Date(),
+        ),
+        listedLaborPrice: matchedSkill?.listedLaborPrice != null ? Number(matchedSkill.listedLaborPrice) : null,
+        typicalWarrantyDays: matchedSkill?.typicalWarrantyDays ?? 30,
+      };
+    });
+  }
+
+  /**
+   * Reschedule a pending/matching booking.
+   */
+  async reschedule(
+    bookingId: string,
+    dto: { preferredAt: string; preferredTimeWindow?: string },
+    customer: { id: string },
+  ): Promise<Booking> {
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId, customerId: customer.id },
+    });
+    if (!booking) {
+      throw new BusinessException(ErrorCodes.OWNERSHIP_DENIED, 'Booking not found');
+    }
+    if (booking.status !== BookingStatus.PENDING && booking.status !== BookingStatus.MATCHING) {
+      throw new BusinessException(
+        ErrorCodes.ORDER_INVALID_TRANSITION,
+        'Cannot reschedule booking in current status',
+      );
+    }
+    booking.preferredAt = new Date(dto.preferredAt);
+    if (dto.preferredTimeWindow !== undefined) {
+      booking.preferredTimeWindow = dto.preferredTimeWindow;
+    }
+    return this.bookingRepo.save(booking);
   }
 
   /**

@@ -3,6 +3,17 @@ export type RootStackParamList = {
   Auth: undefined;
   CustomerMain: undefined;
   TechnicianMain: undefined;
+  CustomerServices: { query?: string } | undefined;
+  CustomerServiceDetail: undefined;
+  CustomerAIDiagnosis: undefined;
+  CustomerAIChat: undefined;
+  CustomerMatching: undefined;
+  CustomerTechFound: undefined;
+  CustomerTracking: undefined;
+  CustomerQuotation: undefined;
+  CustomerUnderRepair: undefined;
+  CustomerCompleted: undefined;
+  CustomerReview: undefined;
 };
 
 export type AuthStackParamList = {

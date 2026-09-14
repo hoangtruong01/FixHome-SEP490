@@ -1,52 +1,55 @@
 // src/navigation/TechnicianNavigator.tsx
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Home, Briefcase, Bell, User } from 'lucide-react-native';
 import type { TechnicianTabParamList } from '../types';
-import { colors } from '../constants';
 import TechnicianHomeScreen from '../screens/technician/TechnicianHomeScreen';
+import TechnicianJobsScreen from '../screens/technician/TechnicianJobsScreen';
+import TechnicianNotificationsScreen from '../screens/technician/TechnicianNotificationsScreen';
+import TechnicianProfileScreen from '../screens/technician/TechnicianProfileScreen';
+import { GlassTabBar } from '../components/navigation/GlassTabBar';
 
 const Tab = createBottomTabNavigator<TechnicianTabParamList>();
-
-// TODO: Create proper screens for other tabs
-
-function PlaceholderScreen() {
-  const React = require('react');
-  const { View, Text } = require('react-native');
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: '#64748B' }}>Coming soon</Text>
-    </View>
-  );
-}
 
 export default function TechnicianNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.secondary,
-        headerShown: true,
-      }}
+      tabBar={(props) => <GlassTabBar {...props} />}
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarIcon: ({ focused, color, size }) => {
+          if (route.name === 'Home') {
+            return <Home size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          } else if (route.name === 'Jobs') {
+            return <Briefcase size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          } else if (route.name === 'Notifications') {
+            return <Bell size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          } else if (route.name === 'Profile') {
+            return <User size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          }
+          return null;
+        },
+      })}
     >
       <Tab.Screen
         name="Home"
         component={TechnicianHomeScreen}
-        options={{ title: 'Dashboard' }}
+        options={{ title: 'Trang chủ' }}
       />
       <Tab.Screen
         name="Jobs"
-        component={PlaceholderScreen}
-        options={{ title: 'Jobs' }}
+        component={TechnicianJobsScreen}
+        options={{ title: 'Công việc' }}
       />
       <Tab.Screen
         name="Notifications"
-        component={PlaceholderScreen}
-        options={{ title: 'Notifications' }}
+        component={TechnicianNotificationsScreen}
+        options={{ title: 'Thông báo' }}
       />
       <Tab.Screen
         name="Profile"
-        component={PlaceholderScreen}
-        options={{ title: 'Profile' }}
+        component={TechnicianProfileScreen}
+        options={{ title: 'Hồ sơ' }}
       />
     </Tab.Navigator>
   );

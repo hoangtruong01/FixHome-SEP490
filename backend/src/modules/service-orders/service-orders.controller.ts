@@ -248,6 +248,101 @@ export class ServiceOrdersController {
     return { data: warranties };
   }
 
+  // ── Spec v1.2: Cash Settlement Dual-Confirmation ──
+
+  @Post('service-orders/:id/cash-settlement/declare')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('order:update_status')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Technician declares cash received for service order' })
+  async declareCashSettlement(
+    @Param('id') id: string,
+    @Body() body: { declaredAmount: number; technicianNotes?: string; receiptEvidenceUrl?: string },
+    @Req() req: { user: { id: string; role: string } },
+  ) {
+    const settlement = await this.serviceOrdersService.declareCashSettlement(id, body, req.user);
+    return { data: settlement };
+  }
+
+  @Post('service-orders/:id/cash-settlement/confirm')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('order:read_related')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Customer confirms or disputes cash payment' })
+  async confirmCashSettlement(
+    @Param('id') id: string,
+    @Body() body: { agreed: boolean; disputeReason?: string; confirmedAmount?: number },
+    @Req() req: { user: { id: string; role: string } },
+  ) {
+    const settlement = await this.serviceOrdersService.confirmCashSettlement(id, body, req.user);
+    return { data: settlement };
+  }
+
+  @Get('service-orders/:id/cash-settlement')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('order:read_related')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get cash settlement status for order' })
+  async getCashSettlement(@Param('id') id: string) {
+    const settlement = await this.serviceOrdersService.getCashSettlement(id);
+    return { data: settlement };
+  }
+
+  // ── Spec v1.2: Commission Dues (Technician 10% Labor Debt) ──
+
+  @Get('commission-dues/my')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('order:read_related')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get my commission dues (Technician)' })
+  async getMyCommissionDues(@Req() req: { user: { id: string } }) {
+    const result = await this.serviceOrdersService.getCommissionDues(req.user.id);
+    return { data: result.data, meta: { totalDue: result.totalDue } };
+  }
+
+  @Post('commission-dues/:id/pay')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('order:read_related')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pay commission due debt' })
+  async payCommissionDue(
+    @Param('id') id: string,
+    @Req() req: { user: { id: string } },
+  ) {
+    const due = await this.serviceOrdersService.payCommissionDue(id, req.user.id);
+    return { data: due };
+  }
+
+  // ── Spec v1.2: Warranty Claims ──
+
+  @Post('service-orders/:id/warranty-claims')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('order:read_related')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Submit warranty claim for order' })
+  async createWarrantyClaim(
+    @Param('id') id: string,
+    @Body() body: { description: string },
+    @Req() req: { user: { id: string } },
+  ) {
+    const claim = await this.serviceOrdersService.createWarrantyClaim(id, body, req.user);
+    return { data: claim };
+  }
+
+  @Get('service-orders/:id/warranty-claims')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('order:read_related')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get warranty claims for order' })
+  async getWarrantyClaims(@Param('id') id: string) {
+    const claims = await this.serviceOrdersService.getWarrantyClaims(id);
+    return { data: claims };
+  }
+
   // ── 4. Repair History (D-20 Read Model) ──
 
   @Get('repair-history')
@@ -302,6 +397,7 @@ export class ServiceOrdersController {
       waiveStrike?: boolean;
       waiveReason?: string;
       compensationDecision?: 'GRANTED' | 'REJECTED';
+      grantPriorityBoost?: boolean;
     },
     @Req() req: { user: { id: string; role: string } },
   ) {

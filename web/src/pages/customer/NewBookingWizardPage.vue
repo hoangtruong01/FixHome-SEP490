@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   Wrench,
@@ -31,6 +31,8 @@ const services = ref<ServiceItem[]>([]);
 const selectedServiceId = ref('');
 const description = ref('');
 const urgency = ref<'LOW' | 'NORMAL' | 'HIGH' | 'EMERGENCY'>('NORMAL');
+const quantity = ref(1);
+const preferredTimeWindow = ref('08:00 - 12:00');
 
 const addresses = ref<UserAddress[]>([]);
 const selectedAddressId = ref('');
@@ -39,6 +41,19 @@ const preferredTime = ref('EARLIEST');
 
 // AI Diagnosis Result
 const aiResult = ref<DiagnosisResult | null>(null);
+
+const selectedService = computed(() => {
+  for (const cat of categories.value) {
+    const found = cat.services?.find((s) => s.id === selectedServiceId.value);
+    if (found) return found;
+  }
+  return services.value.find((s) => s.id === selectedServiceId.value);
+});
+
+const isFixedPrice = computed(() => {
+  const mode = selectedService.value?.pricingMode;
+  return mode === 'FIXED_PRICE' || mode === 'fixed_price';
+});
 
 onMounted(async () => {
   try {
@@ -129,6 +144,8 @@ const createAndFindTech = async () => {
       addressId: selectedAddressId.value || 'mock-addr',
       description: description.value,
       preferredAt: new Date().toISOString(),
+      preferredTimeWindow: preferredTimeWindow.value,
+      quantity: isFixedPrice.value ? quantity.value : 1,
       urgency: urgency.value,
     });
     router.push(`/app/bookings/${booking.id}/candidates`);
@@ -199,6 +216,49 @@ const createAndFindTech = async () => {
                 {{ svc.name }} (~{{ svc.estimatedMinutes }} phút)
               </option>
             </select>
+          </div>
+
+          <!-- Spec v1.2 Fixed Price Package Info & Quantity Selector -->
+          <div v-if="isFixedPrice" class="p-3.5 rounded bg-brand-50 border border-brand-200 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-brand-600 text-white">
+                  Gói trọn gói chuẩn
+                </span>
+                <span class="font-bold text-xs text-brand-900">
+                  {{ selectedService?.name }}
+                </span>
+              </div>
+              <div class="text-xs font-bold text-brand-700 font-num">
+                <FhMoney :amount="selectedService?.fixedPrice || selectedService?.basePrice || 0" /> / {{ selectedService?.unit || 'thiết bị' }}
+              </div>
+            </div>
+            <p v-if="selectedService?.scopeDescription" class="text-[11px] text-ink-600">
+              <strong>Phạm vi gói:</strong> {{ selectedService.scopeDescription }}
+            </p>
+            <div class="flex items-center justify-between pt-2 border-t border-brand-200 text-xs">
+              <label class="font-semibold text-ink-700">Số lượng ({{ selectedService?.unit || 'thiết bị' }}):</label>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  class="w-7 h-7 rounded border border-ink-300 bg-white font-bold flex items-center justify-center hover:bg-ink-100"
+                  @click="quantity = Math.max(1, quantity - 1)"
+                >
+                  -
+                </button>
+                <span class="font-bold font-num text-sm text-ink-900">{{ quantity }}</span>
+                <button
+                  type="button"
+                  class="w-7 h-7 rounded border border-ink-300 bg-white font-bold flex items-center justify-center hover:bg-ink-100"
+                  @click="quantity++"
+                >
+                  +
+                </button>
+                <div class="ml-2 font-bold text-brand-700 font-num">
+                  = <FhMoney :amount="(selectedService?.fixedPrice || selectedService?.basePrice || 0) * quantity" />
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Issue Description -->

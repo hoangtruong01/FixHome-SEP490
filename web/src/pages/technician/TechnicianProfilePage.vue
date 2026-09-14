@@ -11,6 +11,7 @@ import {
 import {
   FhCard,
   FhStatusPill,
+  FhMoney,
 } from '../../components';
 import { useAuthStore } from '../../stores/auth';
 
@@ -25,11 +26,11 @@ const technicianProfile = ref({
   ratingCount: 148,
   reliabilityScore: 98,
   skills: [
-    { serviceName: 'Sửa điều hòa không mát', level: 'EXPERT' },
-    { serviceName: 'Vệ sinh & nạp gas điều hòa', level: 'EXPERT' },
-    { serviceName: 'Sửa chập điện âm tường', level: 'ADVANCED' },
-    { serviceName: 'Sửa máy giặt lồng ngang', level: 'INTERMEDIATE' },
-    { serviceName: 'Lắp đặt quạt trần, đèn', level: 'ADVANCED' },
+    { serviceName: 'Sửa điều hòa không mát', level: 'EXPERT', listedLaborPrice: 150000, pricingMode: 'INSPECTION_REQUIRED' },
+    { serviceName: 'Vệ sinh điều hòa treo tường 1–1.5 HP', level: 'EXPERT', listedLaborPrice: 180000, pricingMode: 'FIXED_PRICE' },
+    { serviceName: 'Sửa chập điện âm tường', level: 'ADVANCED', listedLaborPrice: 200000, pricingMode: 'INSPECTION_REQUIRED' },
+    { serviceName: 'Sửa máy giặt lồng ngang', level: 'INTERMEDIATE', listedLaborPrice: 180000, pricingMode: 'INSPECTION_REQUIRED' },
+    { serviceName: 'Lắp quạt trần cơ bản', level: 'ADVANCED', listedLaborPrice: 250000, pricingMode: 'FIXED_PRICE' },
   ],
   serviceAreas: [
     { province: 'Hà Nội', district: 'Quận Ba Đình' },
@@ -121,9 +122,17 @@ const technicianProfile = ref({
               <CheckCircle2 :size="15" class="text-brand-600 shrink-0" />
               <span class="text-xs font-semibold text-ink-800">{{ skill.serviceName }}</span>
             </div>
-            <span class="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded bg-white text-brand-700 border border-brand-200">
-              {{ skill.level }}
-            </span>
+            <div class="flex items-center gap-2">
+              <span v-if="skill.pricingMode === 'INSPECTION_REQUIRED' && skill.listedLaborPrice" class="text-[11px] font-num text-brand-700 font-bold">
+                <FhMoney :amount="skill.listedLaborPrice" />
+              </span>
+              <span v-else-if="skill.pricingMode === 'FIXED_PRICE'" class="text-[10px] bg-brand-50 text-brand-700 px-1.5 py-0.5 rounded font-medium">
+                Giá cố định
+              </span>
+              <span class="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded bg-white text-brand-700 border border-brand-200">
+                {{ skill.level }}
+              </span>
+            </div>
           </div>
         </div>
       </FhCard>

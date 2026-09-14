@@ -39,6 +39,6 @@ export class BookingInvitation extends BaseEntity {
   @Column({ name: 'responded_at', type: 'timestamptz', nullable: true })
   respondedAt?: Date | null;
 
-  @Column({ name: 'expires_at', type: 'timestamptz' })
-  expiresAt: Date;
+  @Column({ name: 'expires_at', type: 'timestamptz', nullable: true })
+  expiresAt?: Date | null;
 }

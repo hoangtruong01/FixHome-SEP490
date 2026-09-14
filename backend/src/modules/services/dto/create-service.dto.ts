@@ -2,6 +2,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -15,6 +16,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Trim } from '../../../shared/validation/input.transforms';
+import { ServicePricingMode } from '../../../shared/enums';
 
 export class CreateServiceDto {
   @ApiProperty({
@@ -102,6 +104,43 @@ export class CreateServiceDto {
   @IsInt()
   @Min(1)
   estimatedMinutes?: number;
+
+  @ApiPropertyOptional({
+    enum: ServicePricingMode,
+    example: ServicePricingMode.INSPECTION_REQUIRED,
+    description: 'Hình thức tính giá: FIXED_PRICE hoặc INSPECTION_REQUIRED',
+    default: ServicePricingMode.INSPECTION_REQUIRED,
+  })
+  @IsOptional()
+  @IsEnum(ServicePricingMode)
+  pricingMode?: ServicePricingMode;
+
+  @ApiPropertyOptional({
+    example: 'Máy',
+    description: 'Đơn vị tính cho FIXED_PRICE (Máy, Bình, Cái, Bộ, Lần)',
+  })
+  @IsOptional()
+  @IsString()
+  @Trim()
+  unit?: string;
+
+  @ApiPropertyOptional({
+    example: 180000,
+    description: 'Đơn giá cố định chuẩn cho FIXED_PRICE',
+  })
+  @ValidateIf((_dto, value) => value !== undefined)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(9999999999.99)
+  fixedPrice?: number;
+
+  @ApiPropertyOptional({
+    example: 'Vệ sinh lưới lọc, xịt rửa dàn lạnh, dàn nóng, kiểm tra gas cơ bản',
+    description: 'Mô tả phạm vi dịch vụ tiêu chuẩn',
+  })
+  @IsOptional()
+  @IsString()
+  scopeDescription?: string;
 
   @ApiPropertyOptional({ default: true })
   @ValidateIf((_dto, value) => value !== undefined)

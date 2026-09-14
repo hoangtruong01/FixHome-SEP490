@@ -2,6 +2,7 @@
 import { Entity, Column, Index, ManyToOne, JoinColumn, Check } from 'typeorm';
 import { BaseEntity } from '../../../database/base.entity';
 import { ServiceCategory } from '../../categories/entities/category.entity';
+import { ServicePricingMode } from '../../../shared/enums';
 
 @Entity('services')
 @Index('idx_services_code', ['code'], { unique: true })
@@ -59,6 +60,29 @@ export class Service extends BaseEntity {
     nullable: true,
   })
   maxPrice: number;
+
+  @Column({
+    name: 'pricing_mode',
+    type: 'enum',
+    enum: ServicePricingMode,
+    default: ServicePricingMode.INSPECTION_REQUIRED,
+  })
+  pricingMode: ServicePricingMode;
+
+  @Column({ name: 'unit', type: 'varchar', length: 50, nullable: true })
+  unit?: string | null;
+
+  @Column({
+    name: 'fixed_price',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
+  fixedPrice?: number | null;
+
+  @Column({ name: 'scope_description', type: 'text', nullable: true })
+  scopeDescription?: string | null;
 
   @Column({ name: 'estimated_minutes', type: 'int', default: 60 })
   estimatedMinutes: number;

@@ -1,52 +1,69 @@
 // src/navigation/CustomerNavigator.tsx
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Home, Calendar, Bell, User } from 'lucide-react-native';
 import type { CustomerTabParamList } from '../types';
-import { colors } from '../constants';
 import CustomerHomeScreen from '../screens/customer/CustomerHomeScreen';
+import CustomerBookingsScreen from '../screens/customer/CustomerBookingsScreen';
+import CustomerNotificationsScreen from '../screens/customer/CustomerNotificationsScreen';
+import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen';
+import { GlassTabBar } from '../components/navigation/GlassTabBar';
 
 const Tab = createBottomTabNavigator<CustomerTabParamList>();
-
-// TODO: Create placeholder screens for other tabs
-
-function PlaceholderScreen() {
-  const React = require('react');
-  const { View, Text } = require('react-native');
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: '#64748B' }}>Coming soon</Text>
-    </View>
-  );
-}
 
 export default function CustomerNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.secondary,
-        headerShown: true,
-      }}
+      tabBar={(props) => <GlassTabBar {...props} />}
+      screenOptions={({ route }) => ({
+        headerShown: false, // You can toggle this per screen below
+        tabBarIcon: ({ focused, color, size }) => {
+          if (route.name === 'Home') {
+            return <Home size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          } else if (route.name === 'Bookings') {
+            return <Calendar size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          } else if (route.name === 'Notifications') {
+            return <Bell size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          } else if (route.name === 'Profile') {
+            return <User size={size} color={color} strokeWidth={focused ? 2.5 : 2} />;
+          }
+          return null;
+        },
+      })}
     >
       <Tab.Screen
         name="Home"
         component={CustomerHomeScreen}
-        options={{ title: 'Home' }}
+        options={{
+          title: 'Trang chủ',
+        }}
       />
       <Tab.Screen
         name="Bookings"
-        component={PlaceholderScreen}
-        options={{ title: 'Bookings' }}
+        component={CustomerBookingsScreen}
+        options={{
+          title: 'Đơn của tôi',
+          headerShown: true,
+          headerTitle: 'Lịch sử & Hoạt động',
+        }}
       />
       <Tab.Screen
         name="Notifications"
-        component={PlaceholderScreen}
-        options={{ title: 'Notifications' }}
+        component={CustomerNotificationsScreen}
+        options={{
+          title: 'Thông báo',
+          headerShown: true,
+          headerTitle: 'Thông báo & Ưu đãi',
+        }}
       />
       <Tab.Screen
         name="Profile"
-        component={PlaceholderScreen}
-        options={{ title: 'Profile' }}
+        component={CustomerProfileScreen}
+        options={{
+          title: 'Tài khoản',
+          headerShown: false,
+          headerTitle: 'Hồ sơ cá nhân',
+        }}
       />
     </Tab.Navigator>
   );

@@ -25,4 +25,19 @@ export class TechnicianSkill extends BaseEntity {
 
   @Column({ type: 'varchar', length: 50, default: 'INTERMEDIATE' })
   level: string;
+
+  @Column({
+    name: 'listed_labor_price',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
+  listedLaborPrice?: number | null;
+
+  @Column({ name: 'typical_warranty_days', type: 'int', default: 30, nullable: true })
+  typicalWarrantyDays?: number;
+
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
 }

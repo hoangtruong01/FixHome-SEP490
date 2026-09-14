@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development, develop]
+  pull_request:
+    branches: [main, development, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  mobile:
+    name: Mobile quality gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Expo dependency check
+        run: npm run check:expo
+      - name: Lint
+        run: npm run lint
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test

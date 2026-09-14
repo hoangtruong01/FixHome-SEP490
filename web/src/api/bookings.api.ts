@@ -28,12 +28,16 @@ export interface CreateBookingDto {
   addressId: string;
   description: string;
   preferredAt: string;
+  preferredTimeWindow?: string;
+  quantity?: number;
   urgency: 'LOW' | 'NORMAL' | 'HIGH' | 'EMERGENCY';
   mediaUrls?: string[];
 }
 
 export interface TechnicianCandidate {
   id: string;
+  technicianId?: string;
+  userId?: string;
   fullName: string;
   avatarUrl?: string;
   averageRating: number;
@@ -42,6 +46,8 @@ export interface TechnicianCandidate {
   reliabilityScore: number;
   distanceKm?: number;
   isAvailable: boolean;
+  listedLaborPrice?: number | null;
+  typicalWarrantyDays?: number;
 }
 
 export interface DiagnosisResult {

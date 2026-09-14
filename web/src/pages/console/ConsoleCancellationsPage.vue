@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Ban, CheckCircle2 } from 'lucide-vue-next';
-import { FhCard, FhTable, FhStatusPill, FhMoney, FhButton } from '../../components';
+import { Ban, Zap, ShieldAlert } from 'lucide-vue-next';
+import { FhCard, FhTable, FhStatusPill, FhButton } from '../../components';
 
 interface CancellationRecord {
   id: string;
@@ -11,8 +11,8 @@ interface CancellationRecord {
   stateAtCancel: string;
   reason: string;
   strikeApplied: boolean;
-  compensationStatus: string;
-  compensationAmount: number;
+  priorityBoostGranted: boolean;
+  status: string;
 }
 
 const cancellations = ref<CancellationRecord[]>([
@@ -22,27 +22,28 @@ const cancellations = ref<CancellationRecord[]>([
     actor: 'CUSTOMER',
     actorName: 'Phạm Minh Đức',
     stateAtCancel: 'EN_ROUTE',
-    reason: 'Thay đổi kế hoạch đột xuất không có ở nhà',
+    reason: 'Thay đổi kế hoạch đột xuất không có ở nhà sau khi thợ đã đến khu vực',
     strikeApplied: true,
-    compensationStatus: 'PENDING_REVIEW',
-    compensationAmount: 50000,
+    priorityBoostGranted: false,
+    status: 'PENDING_REVIEW',
   },
   {
     id: 'c-2',
     orderCode: 'FH-20260911-0023',
     actor: 'TECHNICIAN',
     actorName: 'Nguyễn Văn Nam',
-    stateAtCancel: 'ASSIGNED',
-    reason: 'Xe hỏng giữa đường không kịp đến đúng giờ',
+    stateAtCancel: 'ACCEPTED',
+    reason: 'Xe hỏng giữa đường không kịp đến đúng giờ hẹn',
     strikeApplied: true,
-    compensationStatus: 'COMPENSATED',
-    compensationAmount: 0,
+    priorityBoostGranted: false,
+    status: 'RESOLVED',
   },
 ]);
 
-const handleResolve = (item: CancellationRecord) => {
-  item.compensationStatus = 'RESOLVED';
-  window.alert(`Đã xử lý tranh chấp huỷ đơn "${item.orderCode}". Trạng thái bồi thường đã cập nhật.`);
+const handleGrantBoost = (item: CancellationRecord) => {
+  item.priorityBoostGranted = true;
+  item.status = 'RESOLVED';
+  window.alert(`Đã xử lý huỷ đơn "${item.orderCode}": Áp dụng 1 Strike cho khách hàng và cấp Priority Boost 7 ngày cho thợ (Spec v1.2 D-19).`);
 };
 </script>
 
@@ -53,10 +54,10 @@ const handleResolve = (item: CancellationRecord) => {
       <div>
         <h1 class="text-2xl font-bold text-ink-900 tracking-tight flex items-center gap-2">
           <Ban class="text-danger-600" :size="24" />
-          Quản lý Huỷ đơn & Giải quyết Khiếu nại
+          Quản lý Huỷ đơn, Strike & Priority Boost
         </h1>
         <p class="text-xs text-ink-500 mt-1">
-          Theo dõi nguồn gốc huỷ đơn (Customer, Technician, System), tính toán phí bù trừ và áp dụng Strike theo quy định.
+          Theo dõi nguồn gốc huỷ đơn (Customer / Technician), ghi nhận Strike vi phạm và cấp Priority Boost cho thợ khi khách huỷ sau arrival (Spec v1.2 BRX-034 - Không bồi thường tiền mặt).
         </p>
       </div>
     </div>
@@ -69,8 +70,8 @@ const handleResolve = (item: CancellationRecord) => {
           { key: 'actor', label: 'Đối tượng huỷ' },
           { key: 'state', label: 'Thời điểm huỷ' },
           { key: 'reason', label: 'Lý do ghi nhận' },
-          { key: 'compensation', label: 'Bồi thường thợ' },
-          { key: 'actions', label: 'Xử lý', width: '130px' },
+          { key: 'remedy', label: 'Biện pháp chế tài' },
+          { key: 'actions', label: 'Xử lý', width: '160px' },
         ]"
         :rows="cancellations"
       >
@@ -96,28 +97,30 @@ const handleResolve = (item: CancellationRecord) => {
           <span class="text-xs text-ink-600 italic line-clamp-2">"{{ row.reason }}"</span>
         </template>
 
-        <template #cell-compensation="{ row }">
-          <div class="font-num text-xs font-bold text-ink-900">
-            <FhMoney :amount="row.compensationAmount" />
+        <template #cell-remedy="{ row }">
+          <div class="space-y-1">
+            <div v-if="row.strikeApplied" class="flex items-center gap-1 text-[11px] font-semibold text-danger-600">
+              <ShieldAlert :size="12" /> +1 Strike vi phạm
+            </div>
+            <div v-if="row.priorityBoostGranted" class="flex items-center gap-1 text-[11px] font-bold text-brand-600">
+              <Zap :size="12" /> Priority Boost thợ
+            </div>
+            <span v-if="!row.priorityBoostGranted && row.status === 'PENDING_REVIEW'" class="text-[10px] text-warning-600 font-semibold">
+              Chờ SM duyệt Boost
+            </span>
           </div>
-          <span
-            class="text-[10px] font-semibold"
-            :class="row.compensationStatus === 'PENDING_REVIEW' ? 'text-warning-600' : 'text-success-600'"
-          >
-            {{ row.compensationStatus }}
-          </span>
         </template>
 
         <template #cell-actions="{ row }">
           <FhButton
-            v-if="row.compensationStatus === 'PENDING_REVIEW'"
+            v-if="row.status === 'PENDING_REVIEW'"
             variant="primary"
             size="sm"
-            @click="handleResolve(row)"
+            @click="handleGrantBoost(row)"
           >
-            <CheckCircle2 :size="13" class="mr-1" /> Duyệt bù trừ
+            <Zap :size="13" class="mr-1" /> Cấp Priority Boost
           </FhButton>
-          <span v-else class="text-xs text-ink-400 font-semibold">Đã duyệt</span>
+          <span v-else class="text-xs text-ink-400 font-semibold">Đã duyệt xử lý</span>
         </template>
       </FhTable>
     </FhCard>

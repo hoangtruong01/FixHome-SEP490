@@ -21,7 +21,7 @@ export class ServiceOrder extends BaseEntity {
   @Column({
     type: 'enum',
     enum: ServiceOrderStatus,
-    default: ServiceOrderStatus.PENDING_CONFIRMATION,
+    default: ServiceOrderStatus.ACCEPTED,
   })
   status: ServiceOrderStatus;
 

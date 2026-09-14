@@ -11,7 +11,7 @@ import { BaseEntity } from '../../../database/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { Service } from '../../services/entities/service.entity';
 import { Address } from '../../users/entities/address.entity';
-import { BookingStatus, UrgencyLevel } from '../../../shared/enums';
+import { BookingStatus, ServicePricingMode, UrgencyLevel } from '../../../shared/enums';
 import { BookingMedia } from './booking-media.entity';
 import { BookingInvitation } from './booking-invitation.entity';
 
@@ -45,6 +45,32 @@ export class Booking extends BaseEntity {
 
   @Column({ name: 'preferred_at', type: 'timestamptz', nullable: true })
   preferredAt?: Date | null;
+
+  @Column({ name: 'preferred_time_window', type: 'varchar', length: 100, nullable: true })
+  preferredTimeWindow?: string | null;
+
+  @Column({
+    name: 'pricing_mode_snapshot',
+    type: 'enum',
+    enum: ServicePricingMode,
+    nullable: true,
+  })
+  pricingModeSnapshot?: ServicePricingMode | null;
+
+  @Column({
+    name: 'fixed_unit_price_snapshot',
+    type: 'numeric',
+    precision: 12,
+    scale: 2,
+    nullable: true,
+  })
+  fixedUnitPriceSnapshot?: number | null;
+
+  @Column({ type: 'int', default: 1 })
+  quantity: number;
+
+  @Column({ name: 'scope_snapshot', type: 'text', nullable: true })
+  scopeSnapshot?: string | null;
 
   @Column({
     type: 'enum',

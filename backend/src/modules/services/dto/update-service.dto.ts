@@ -2,6 +2,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsBoolean,
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -14,6 +15,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Trim } from '../../../shared/validation/input.transforms';
+import { ServicePricingMode } from '../../../shared/enums';
 
 export class UpdateServiceDto {
   @ApiPropertyOptional({ example: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d' })
@@ -68,6 +70,32 @@ export class UpdateServiceDto {
   @IsInt()
   @Min(1)
   estimatedMinutes?: number;
+
+  @ApiPropertyOptional({
+    enum: ServicePricingMode,
+    example: ServicePricingMode.INSPECTION_REQUIRED,
+  })
+  @IsOptional()
+  @IsEnum(ServicePricingMode)
+  pricingMode?: ServicePricingMode;
+
+  @ApiPropertyOptional({ example: 'Máy' })
+  @IsOptional()
+  @IsString()
+  @Trim()
+  unit?: string;
+
+  @ApiPropertyOptional({ example: 180000 })
+  @ValidateIf((_dto, value) => value !== undefined)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(9999999999.99)
+  fixedPrice?: number;
+
+  @ApiPropertyOptional({ example: 'Vệ sinh lưới lọc, xịt rửa dàn lạnh' })
+  @IsOptional()
+  @IsString()
+  scopeDescription?: string;
 
   @ApiPropertyOptional({ example: true })
   @ValidateIf((_dto, value) => value !== undefined)

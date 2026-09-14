@@ -61,6 +61,13 @@ export class TechnicianProfile extends BaseEntity {
   })
   workSuspendedUntil?: Date | null;
 
+  @Column({
+    name: 'priority_boost_until',
+    type: 'timestamptz',
+    nullable: true,
+  })
+  priorityBoostUntil?: Date | null;
+
   @Column({ name: 'is_available', type: 'boolean', default: true })
   isAvailable: boolean;
 

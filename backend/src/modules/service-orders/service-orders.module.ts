@@ -15,6 +15,9 @@ import { InvoiceItem } from './entities/invoice-item.entity';
 import { WarrantyCoverage } from './entities/warranty-coverage.entity';
 import { AdditionalCostRequest } from './entities/additional-cost-request.entity';
 import { AdditionalCostItem } from './entities/additional-cost-item.entity';
+import { CashSettlement } from './entities/cash-settlement.entity';
+import { CommissionDue } from './entities/commission-due.entity';
+import { WarrantyClaim } from './entities/warranty-claim.entity';
 import { Quotation } from '../quotations/entities/quotation.entity';
 import { QuotationItem } from '../quotations/entities/quotation-item.entity';
 import { User } from '../users/entities/user.entity';
@@ -35,6 +38,9 @@ import { TechnicianProfile } from '../technicians/entities/technician-profile.en
       WarrantyCoverage,
       AdditionalCostRequest,
       AdditionalCostItem,
+      CashSettlement,
+      CommissionDue,
+      WarrantyClaim,
       Quotation,
       QuotationItem,
       User,

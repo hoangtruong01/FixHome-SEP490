@@ -14,6 +14,7 @@ import { CreateServiceDto, UpdateServiceDto, QueryServicesDto } from './dto';
 import { PaginationMeta } from '../../shared/dto';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { User } from '../users/entities/user.entity';
+import { ServicePricingMode } from '../../shared/enums';
 
 @Injectable()
 export class ServicesService {
@@ -153,6 +154,10 @@ export class ServicesService {
       basePrice: dto.basePrice !== undefined ? dto.basePrice : null,
       minPrice: dto.minPrice !== undefined ? dto.minPrice : null,
       maxPrice: dto.maxPrice !== undefined ? dto.maxPrice : null,
+      pricingMode: dto.pricingMode ?? ServicePricingMode.INSPECTION_REQUIRED,
+      unit: dto.unit?.trim() || null,
+      fixedPrice: dto.fixedPrice !== undefined ? dto.fixedPrice : null,
+      scopeDescription: dto.scopeDescription?.trim() || null,
       estimatedMinutes: dto.estimatedMinutes ?? 60,
       isActive: dto.isActive !== undefined ? dto.isActive : true,
     });
@@ -212,6 +217,12 @@ export class ServicesService {
     if (dto.basePrice !== undefined) service.basePrice = dto.basePrice;
     if (dto.minPrice !== undefined) service.minPrice = dto.minPrice;
     if (dto.maxPrice !== undefined) service.maxPrice = dto.maxPrice;
+    if (dto.pricingMode !== undefined) service.pricingMode = dto.pricingMode;
+    if (dto.unit !== undefined) service.unit = dto.unit ? dto.unit.trim() : null;
+    if (dto.fixedPrice !== undefined) service.fixedPrice = dto.fixedPrice;
+    if (dto.scopeDescription !== undefined) {
+      service.scopeDescription = dto.scopeDescription ? dto.scopeDescription.trim() : null;
+    }
     if (dto.estimatedMinutes !== undefined) {
       service.estimatedMinutes = dto.estimatedMinutes;
     }

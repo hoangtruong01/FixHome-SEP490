@@ -50,10 +50,13 @@ const serviceForm = ref<Partial<ServiceItem>>({
   categoryId: '',
   name: '',
   code: '',
-  slug: '',
   basePrice: 150000,
   minPrice: 100000,
   maxPrice: 500000,
+  pricingMode: 'inspection_required' as 'inspection_required' | 'fixed_price',
+  unit: 'máy',
+  fixedPrice: 150000,
+  scopeDescription: '',
   estimatedMinutes: 60,
   description: '',
   isActive: true,
@@ -188,11 +191,14 @@ const openAddService = () => {
   serviceForm.value = {
     categoryId: categories.value[0]?.id ?? '',
     name: '',
-    code: '',
     slug: '',
     basePrice: 150000,
     minPrice: 100000,
     maxPrice: 500000,
+    pricingMode: 'inspection_required',
+    unit: 'máy',
+    fixedPrice: 150000,
+    scopeDescription: '',
     estimatedMinutes: 60,
     description: '',
     isActive: true,
@@ -590,7 +596,55 @@ const handleConfirm = async () => {
             </div>
           </div>
 
-          <div class="grid grid-cols-3 gap-3">
+          <!-- Spec v1.2 Dual Pricing Mode -->
+          <div class="p-3 bg-brand-50/50 rounded border border-brand-200 space-y-3">
+            <div>
+              <label class="block font-semibold text-brand-900 mb-1">Mô hình Định giá (Spec v1.2) *</label>
+              <select
+                v-model="serviceForm.pricingMode"
+                class="w-full h-9 px-3 bg-white border border-brand-300 rounded focus:outline-none focus:border-brand-600 font-semibold text-xs"
+              >
+                <option value="inspection_required">1. Khảo sát báo giá tại chỗ (Inspection Required)</option>
+                <option value="fixed_price">2. Trọn gói chuẩn hoá (Fixed Price Package)</option>
+              </select>
+              <p class="text-[10px] text-ink-500 mt-1">
+                {{ serviceForm.pricingMode === 'fixed_price' ? 'Khách hàng thấy giá cố định ngay khi đặt, không cần thợ lập báo giá khảo sát.' : 'Thợ đến khảo sát thực tế, lập báo giá phân tách công & vật tư để khách duyệt.' }}
+              </p>
+            </div>
+
+            <div v-if="serviceForm.pricingMode === 'fixed_price'" class="grid grid-cols-2 gap-3 pt-1">
+              <div>
+                <label class="block font-semibold text-ink-700 mb-1">Giá trọn gói cố định (VNĐ) *</label>
+                <input
+                  v-model.number="serviceForm.fixedPrice"
+                  type="number"
+                  step="10000"
+                  class="w-full h-8 px-2.5 bg-white border border-ink-200 rounded font-num font-bold text-xs"
+                  placeholder="VD: 180000"
+                />
+              </div>
+              <div>
+                <label class="block font-semibold text-ink-700 mb-1">Đơn vị tính (Unit) *</label>
+                <input
+                  v-model="serviceForm.unit"
+                  type="text"
+                  class="w-full h-8 px-2.5 bg-white border border-ink-200 rounded text-xs"
+                  placeholder="VD: chiếc, máy, bộ, m2"
+                />
+              </div>
+              <div class="col-span-2">
+                <label class="block font-semibold text-ink-700 mb-1">Phạm vi công việc chuẩn (Scope Description)</label>
+                <textarea
+                  v-model="serviceForm.scopeDescription"
+                  rows="2"
+                  class="w-full p-2 bg-white border border-ink-200 rounded text-xs"
+                  placeholder="Ghi rõ phạm vi gói (VD: Vệ sinh lưới lọc, xịt rửa dàn lạnh, kiểm tra gas)"
+                ></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="serviceForm.pricingMode === 'inspection_required'" class="grid grid-cols-3 gap-3">
             <div>
               <label class="block font-semibold text-ink-700 mb-1">Giá tối thiểu (VNĐ)</label>
               <input

@@ -5,24 +5,6 @@ import { ServiceOrderStatus, Role } from '../../shared/enums';
 
 describe('ServiceOrderStateMachine', () => {
   describe('Valid Lifecycle Transitions', () => {
-    it('should allow PENDING_CONFIRMATION -> ACCEPTED', () => {
-      expect(
-        ServiceOrderStateMachine.canTransition(
-          ServiceOrderStatus.PENDING_CONFIRMATION,
-          ServiceOrderStatus.ACCEPTED,
-        ),
-      ).toBe(true);
-    });
-
-    it('should allow PENDING_CONFIRMATION -> CANCELLED', () => {
-      expect(
-        ServiceOrderStateMachine.canTransition(
-          ServiceOrderStatus.PENDING_CONFIRMATION,
-          ServiceOrderStatus.CANCELLED,
-        ),
-      ).toBe(true);
-    });
-
     it('should allow ACCEPTED -> EN_ROUTE', () => {
       expect(
         ServiceOrderStateMachine.canTransition(
@@ -50,6 +32,15 @@ describe('ServiceOrderStateMachine', () => {
       ).toBe(true);
     });
 
+    it('should allow EN_ROUTE -> CANCELLED', () => {
+      expect(
+        ServiceOrderStateMachine.canTransition(
+          ServiceOrderStatus.EN_ROUTE,
+          ServiceOrderStatus.CANCELLED,
+        ),
+      ).toBe(true);
+    });
+
     it('should allow UNDER_REPAIR -> COMPLETED', () => {
       expect(
         ServiceOrderStateMachine.canTransition(
@@ -58,13 +49,22 @@ describe('ServiceOrderStateMachine', () => {
         ),
       ).toBe(true);
     });
+
+    it('should allow UNDER_REPAIR -> CANCELLED', () => {
+      expect(
+        ServiceOrderStateMachine.canTransition(
+          ServiceOrderStatus.UNDER_REPAIR,
+          ServiceOrderStatus.CANCELLED,
+        ),
+      ).toBe(true);
+    });
   });
 
   describe('Invalid Lifecycle Transitions (Must Fail)', () => {
-    it('should reject PENDING_CONFIRMATION -> COMPLETED', () => {
+    it('should reject ACCEPTED -> COMPLETED directly', () => {
       expect(
         ServiceOrderStateMachine.canTransition(
-          ServiceOrderStatus.PENDING_CONFIRMATION,
+          ServiceOrderStatus.ACCEPTED,
           ServiceOrderStatus.COMPLETED,
         ),
       ).toBe(false);
@@ -118,20 +118,10 @@ describe('ServiceOrderStateMachine', () => {
       ).toBe(true);
     });
 
-    it('should reject TECHNICIAN from transitioning PENDING_CONFIRMATION -> ACCEPTED directly', () => {
+    it('should allow CUSTOMER to cancel ACCEPTED order', () => {
       expect(
         ServiceOrderStateMachine.canTransition(
-          ServiceOrderStatus.PENDING_CONFIRMATION,
           ServiceOrderStatus.ACCEPTED,
-          Role.TECHNICIAN,
-        ),
-      ).toBe(false);
-    });
-
-    it('should allow CUSTOMER to cancel PENDING_CONFIRMATION order', () => {
-      expect(
-        ServiceOrderStateMachine.canTransition(
-          ServiceOrderStatus.PENDING_CONFIRMATION,
           ServiceOrderStatus.CANCELLED,
           Role.CUSTOMER,
         ),

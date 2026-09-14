@@ -4,27 +4,24 @@ import { ServiceOrderStatus, Role } from '../../shared/enums';
 export class ServiceOrderStateMachine {
   /**
    * Base lifecycle state transitions allowed by the system:
-   * PENDING_CONFIRMATION -> ACCEPTED, CANCELLED
    * ACCEPTED -> EN_ROUTE, CANCELLED
-   * EN_ROUTE -> UNDER_REPAIR
-   * UNDER_REPAIR -> COMPLETED
+   * EN_ROUTE -> UNDER_REPAIR, CANCELLED
+   * UNDER_REPAIR -> COMPLETED, CANCELLED
    * COMPLETED -> (terminal)
    * CANCELLED -> (terminal)
    */
   private static readonly TRANSITIONS: Record<ServiceOrderStatus, ServiceOrderStatus[]> = {
-    [ServiceOrderStatus.PENDING_CONFIRMATION]: [
-      ServiceOrderStatus.ACCEPTED,
-      ServiceOrderStatus.CANCELLED,
-    ],
     [ServiceOrderStatus.ACCEPTED]: [
       ServiceOrderStatus.EN_ROUTE,
       ServiceOrderStatus.CANCELLED,
     ],
     [ServiceOrderStatus.EN_ROUTE]: [
       ServiceOrderStatus.UNDER_REPAIR,
+      ServiceOrderStatus.CANCELLED,
     ],
     [ServiceOrderStatus.UNDER_REPAIR]: [
       ServiceOrderStatus.COMPLETED,
+      ServiceOrderStatus.CANCELLED,
     ],
     [ServiceOrderStatus.COMPLETED]: [],
     [ServiceOrderStatus.CANCELLED]: [],
@@ -32,46 +29,53 @@ export class ServiceOrderStateMachine {
 
   /**
    * Role-based permissions for state transitions:
-   * - CUSTOMER: can cancel pending or accepted orders
-   * - TECHNICIAN: can progress order (ACCEPTED -> EN_ROUTE -> UNDER_REPAIR -> COMPLETED)
-   * - SERVICE_MANAGER / ADMIN: can accept, cancel, or progress
+   * - CUSTOMER: can cancel accepted orders or en_route
+   * - TECHNICIAN: can progress order (ACCEPTED -> EN_ROUTE -> UNDER_REPAIR -> COMPLETED) or cancel before arrival
+   * - SERVICE_MANAGER / ADMIN: can cancel, or progress
    */
   private static readonly ROLE_TRANSITIONS: Record<
     Role,
     Partial<Record<ServiceOrderStatus, ServiceOrderStatus[]>>
   > = {
     [Role.CUSTOMER]: {
-      [ServiceOrderStatus.PENDING_CONFIRMATION]: [ServiceOrderStatus.CANCELLED],
       [ServiceOrderStatus.ACCEPTED]: [ServiceOrderStatus.CANCELLED],
+      [ServiceOrderStatus.EN_ROUTE]: [ServiceOrderStatus.CANCELLED],
     },
     [Role.TECHNICIAN]: {
-      [ServiceOrderStatus.ACCEPTED]: [ServiceOrderStatus.EN_ROUTE],
+      [ServiceOrderStatus.ACCEPTED]: [
+        ServiceOrderStatus.EN_ROUTE,
+        ServiceOrderStatus.CANCELLED,
+      ],
       [ServiceOrderStatus.EN_ROUTE]: [ServiceOrderStatus.UNDER_REPAIR],
       [ServiceOrderStatus.UNDER_REPAIR]: [ServiceOrderStatus.COMPLETED],
     },
     [Role.SERVICE_MANAGER]: {
-      [ServiceOrderStatus.PENDING_CONFIRMATION]: [
-        ServiceOrderStatus.ACCEPTED,
-        ServiceOrderStatus.CANCELLED,
-      ],
       [ServiceOrderStatus.ACCEPTED]: [
         ServiceOrderStatus.EN_ROUTE,
         ServiceOrderStatus.CANCELLED,
       ],
-      [ServiceOrderStatus.EN_ROUTE]: [ServiceOrderStatus.UNDER_REPAIR],
-      [ServiceOrderStatus.UNDER_REPAIR]: [ServiceOrderStatus.COMPLETED],
+      [ServiceOrderStatus.EN_ROUTE]: [
+        ServiceOrderStatus.UNDER_REPAIR,
+        ServiceOrderStatus.CANCELLED,
+      ],
+      [ServiceOrderStatus.UNDER_REPAIR]: [
+        ServiceOrderStatus.COMPLETED,
+        ServiceOrderStatus.CANCELLED,
+      ],
     },
     [Role.ADMIN]: {
-      [ServiceOrderStatus.PENDING_CONFIRMATION]: [
-        ServiceOrderStatus.ACCEPTED,
-        ServiceOrderStatus.CANCELLED,
-      ],
       [ServiceOrderStatus.ACCEPTED]: [
         ServiceOrderStatus.EN_ROUTE,
         ServiceOrderStatus.CANCELLED,
       ],
-      [ServiceOrderStatus.EN_ROUTE]: [ServiceOrderStatus.UNDER_REPAIR],
-      [ServiceOrderStatus.UNDER_REPAIR]: [ServiceOrderStatus.COMPLETED],
+      [ServiceOrderStatus.EN_ROUTE]: [
+        ServiceOrderStatus.UNDER_REPAIR,
+        ServiceOrderStatus.CANCELLED,
+      ],
+      [ServiceOrderStatus.UNDER_REPAIR]: [
+        ServiceOrderStatus.COMPLETED,
+        ServiceOrderStatus.CANCELLED,
+      ],
     },
   };
 

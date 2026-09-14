@@ -91,23 +91,16 @@ export class TechnicianAssignmentService {
       });
       const savedAssignment = await manager.save(newAssignment);
 
-      // 3. If order is in PENDING_CONFIRMATION, transition to ACCEPTED
-      const previousStatus = order.status;
-      if (order.status === ServiceOrderStatus.PENDING_CONFIRMATION) {
-        order.status = ServiceOrderStatus.ACCEPTED;
-        await manager.save(order);
-
-        // Record status history
-        const history = manager.create(OrderStatusHistory, {
-          serviceOrderId: orderId,
-          fromStatus: previousStatus,
-          toStatus: ServiceOrderStatus.ACCEPTED,
-          actorUserId: actorUser.id,
-          actorRole: actorUser.role,
-          reason: reason || 'Technician manually assigned by Staff/Admin',
-        });
-        await manager.save(history);
-      }
+      // 3. Record status history for reassignment
+      const history = manager.create(OrderStatusHistory, {
+        serviceOrderId: orderId,
+        fromStatus: order.status,
+        toStatus: order.status,
+        actorUserId: actorUser.id,
+        actorRole: actorUser.role,
+        reason: reason || 'Technician manually assigned/reassigned by Staff/Admin',
+      });
+      await manager.save(history);
 
       // 4. Audit Log
       await this.auditLogService.log({

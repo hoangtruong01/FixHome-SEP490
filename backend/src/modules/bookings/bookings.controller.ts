@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -95,5 +96,19 @@ export class BookingsController {
       req.user,
     );
     return { data: invitations };
+  }
+
+  @Patch(':id/schedule')
+  @UseGuards(JwtAuthGuard, PermissionGuard)
+  @RequirePermission('booking:create')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Reschedule booking preferred date/time window' })
+  async reschedule(
+    @Param('id') id: string,
+    @Body() body: { preferredAt: string; preferredTimeWindow?: string },
+    @Req() req: { user: { id: string } },
+  ) {
+    const booking = await this.bookingsService.reschedule(id, body, req.user);
+    return { data: booking };
   }
 }

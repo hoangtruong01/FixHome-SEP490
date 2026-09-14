@@ -90,13 +90,14 @@ export class InvitationsService {
 
     const invitations: BookingInvitation[] = [];
     for (let i = 0; i < technicianIds.length; i++) {
+      const isFirst = i === 0;
       const invitation = this.invitationRepo.create({
         bookingId,
         technicianId: technicianIds[i],
         priorityOrder: i + 1,
-        status: InvitationStatus.PENDING,
+        status: isFirst ? InvitationStatus.PENDING : InvitationStatus.STANDBY,
         invitedAt: new Date(),
-        expiresAt,
+        expiresAt: isFirst ? expiresAt : null,
       });
       invitations.push(invitation);
     }
@@ -174,7 +175,11 @@ export class InvitationsService {
       );
     }
 
-    if (invitation.expiresAt < new Date()) {
+    if (invitation.expiresAt && invitation.expiresAt < new Date()) {
+      invitation.status = InvitationStatus.EXPIRED;
+      invitation.respondedAt = new Date();
+      await this.invitationRepo.save(invitation);
+      await this.inviteNextCandidate(invitation.bookingId);
       throw new BusinessException(
         ErrorCodes.INVITATION_EXPIRED,
         'Invitation has expired',
@@ -185,7 +190,24 @@ export class InvitationsService {
       invitation.status = InvitationStatus.DECLINED;
       invitation.respondedAt = new Date();
       await this.invitationRepo.save(invitation);
+      await this.inviteNextCandidate(invitation.bookingId);
       return { invitation };
+    }
+
+    // Check overdue commission debt (Spec v1.2 rule: blocked from new jobs if overdue)
+    const overdueCount = await this.dataSource
+      .getRepository('commission_dues')
+      .createQueryBuilder('cd')
+      .where('cd.technician_id = :techId', { techId: technician.id })
+      .andWhere('cd.status = :status', { status: 'pending' })
+      .andWhere('cd.due_date < :now', { now: new Date() })
+      .getCount();
+
+    if (overdueCount > 0) {
+      throw new BusinessException(
+        ErrorCodes.WORK_SUSPENDED,
+        'Technician has overdue platform commission debt. Please clear dues before accepting new jobs.',
+      );
     }
 
     // ── ACCEPT — atomic transaction ──
@@ -252,7 +274,7 @@ export class InvitationsService {
       invitation.respondedAt = now;
       await manager.save(BookingInvitation, invitation);
 
-      // 8. Expire all other invitations for this booking
+      // 8. Expire all other invitations for this booking (both PENDING and STANDBY)
       await manager
         .createQueryBuilder()
         .update(BookingInvitation)
@@ -262,7 +284,9 @@ export class InvitationsService {
         })
         .where('booking_id = :bookingId', { bookingId: booking.id })
         .andWhere('id != :invId', { invId: invitation.id })
-        .andWhere('status = :pending', { pending: InvitationStatus.PENDING })
+        .andWhere('status IN (:...statuses)', {
+          statuses: [InvitationStatus.PENDING, InvitationStatus.STANDBY],
+        })
         .execute();
 
       // 9. Update booking status to MATCHED
@@ -285,5 +309,38 @@ export class InvitationsService {
 
       return { invitation, serviceOrder: savedOrder };
     });
+  }
+
+  /**
+   * Activate next candidate in priority sequence if available.
+   */
+  async inviteNextCandidate(bookingId: string): Promise<BookingInvitation | null> {
+    const nextStandby = await this.invitationRepo.findOne({
+      where: {
+        bookingId,
+        status: InvitationStatus.STANDBY,
+      },
+      order: { priorityOrder: 'ASC' },
+    });
+
+    if (!nextStandby) {
+      this.logger.log(`No more standby candidates for booking ${bookingId}`);
+      return null;
+    }
+
+    const ttlMinutes = await this.configService.getInt(
+      'matching.invitation_ttl_minutes',
+      30,
+    );
+    const now = new Date();
+    nextStandby.status = InvitationStatus.PENDING;
+    nextStandby.invitedAt = now;
+    nextStandby.expiresAt = new Date(now.getTime() + ttlMinutes * 60 * 1000);
+
+    const saved = await this.invitationRepo.save(nextStandby);
+    this.logger.log(
+      `Sequential matching: activated candidate ${saved.technicianId} (priority ${saved.priorityOrder}) for booking ${bookingId}`,
+    );
+    return saved;
   }
 }

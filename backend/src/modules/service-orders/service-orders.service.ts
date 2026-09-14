@@ -15,6 +15,10 @@ import { WarrantyCoverage } from './entities/warranty-coverage.entity';
 import { AdditionalCostRequest } from './entities/additional-cost-request.entity';
 import { Quotation } from '../quotations/entities/quotation.entity';
 import { AdditionalCostItem } from './entities/additional-cost-item.entity';
+import { CashSettlement } from './entities/cash-settlement.entity';
+import { CommissionDue } from './entities/commission-due.entity';
+import { WarrantyClaim } from './entities/warranty-claim.entity';
+import { Booking } from '../bookings/entities/booking.entity';
 import { User } from '../users/entities/user.entity';
 import { TechnicianProfile } from '../technicians/entities/technician-profile.entity';
 import { ServiceOrderStateMachine } from './service-order-state-machine';
@@ -33,6 +37,10 @@ import {
   Role,
   CostItemType,
   WarrantyStatus,
+  ServicePricingMode,
+  CashSettlementStatus,
+  CommissionDueStatus,
+  WarrantyClaimStatus,
 } from '../../shared/enums';
 import { BusinessConfigService } from '../system-config/business-config.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
@@ -65,6 +73,12 @@ export class ServiceOrdersService {
     private readonly warrantyRepo: Repository<WarrantyCoverage>,
     @InjectRepository(AdditionalCostRequest)
     private readonly additionalCostRepo: Repository<AdditionalCostRequest>,
+    @InjectRepository(CashSettlement)
+    private readonly cashSettlementRepo: Repository<CashSettlement>,
+    @InjectRepository(CommissionDue)
+    private readonly commissionDueRepo: Repository<CommissionDue>,
+    @InjectRepository(WarrantyClaim)
+    private readonly warrantyClaimRepo: Repository<WarrantyClaim>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(TechnicianProfile)
@@ -402,9 +416,7 @@ export class ServiceOrdersService {
       let compensationStatus = CompensationStatus.NOT_ELIGIBLE;
 
       if (cancelActorType === CancelActor.CUSTOMER) {
-        if (stateAtCancel === ServiceOrderStatus.PENDING_CONFIRMATION) {
-          // No strike, no compensation
-        } else if (stateAtCancel === ServiceOrderStatus.ACCEPTED) {
+        if (stateAtCancel === ServiceOrderStatus.ACCEPTED) {
           // Check grace period
           const graceMinutes = await this.configService.getInt(
             'cancel.grace_minutes_after_accept',
@@ -424,20 +436,27 @@ export class ServiceOrdersService {
           stateAtCancel === ServiceOrderStatus.UNDER_REPAIR
         ) {
           strikeApplied = true;
-          // Check if there's a valid check-in for compensation
+          // Check if there's a valid arrival check-in per Spec v1.2 D-19 / BRX-034
+          // (No monetary compensation; Customer +1 strike, Technician receives Priority Boost ranking signal)
           const validCheckIn = await manager.findOne(ArrivalCheckIn, {
             where: { serviceOrderId: orderId, result: CheckInResult.VALID },
           });
           if (validCheckIn) {
-            compensationStatus = CompensationStatus.ELIGIBLE;
+            compensationStatus = CompensationStatus.NOT_ELIGIBLE;
+            const assignment = await manager.findOne(TechnicianAssignment, {
+              where: { serviceOrderId: orderId, isActive: true },
+            });
+            if (assignment) {
+              const boostDays = await this.configService.getInt('priority_boost.duration_days', 7);
+              const boostUntil = new Date(now.getTime() + boostDays * 24 * 60 * 60 * 1000);
+              await manager.update(TechnicianProfile, { userId: assignment.technicianId }, {
+                priorityBoostUntil: boostUntil,
+              });
+            }
           }
         }
       } else if (cancelActorType === CancelActor.TECHNICIAN) {
-        if (
-          stateAtCancel !== ServiceOrderStatus.PENDING_CONFIRMATION
-        ) {
-          strikeApplied = true;
-        }
+        strikeApplied = true;
       }
 
       // Update order status
@@ -595,6 +614,243 @@ export class ServiceOrdersService {
     });
   }
 
+  // ── Spec v1.2: Cash Settlement & Commission Tracking ──
+
+  async declareCashSettlement(
+    orderId: string,
+    dto: { declaredAmount: number; technicianNotes?: string; receiptEvidenceUrl?: string },
+    actor: { id: string; role: string },
+  ): Promise<CashSettlement> {
+    const order = await this.orderRepo.findOneBy({ id: orderId });
+    if (!order) {
+      throw new BusinessException(ErrorCodes.NOT_FOUND, 'Service order not found');
+    }
+
+    // Verify actor is assigned technician
+    const assignment = await this.assignmentRepo.findOne({
+      where: { serviceOrderId: orderId, technicianId: actor.id, isActive: true },
+    });
+    if (!assignment && actor.role !== Role.ADMIN) {
+      throw new BusinessException(
+        ErrorCodes.OWNERSHIP_DENIED,
+        'Only assigned technician can declare cash received',
+      );
+    }
+    if (order.status !== ServiceOrderStatus.COMPLETED) {
+      throw new BusinessException(
+        ErrorCodes.ORDER_INVALID_TRANSITION,
+        'Order must be completed before settling cash payment',
+      );
+    }
+
+    let settlement = await this.cashSettlementRepo.findOne({
+      where: { serviceOrderId: orderId },
+    });
+    if (settlement && settlement.status === CashSettlementStatus.CONFIRMED) {
+      throw new BusinessException(
+        ErrorCodes.CONFLICT,
+        'Cash settlement is already confirmed',
+      );
+    }
+
+    if (!settlement) {
+      settlement = this.cashSettlementRepo.create({
+        serviceOrderId: orderId,
+        declaredByTechnicianId: actor.id,
+      });
+    }
+
+    settlement.declaredAmount = dto.declaredAmount;
+    settlement.declaredAt = new Date();
+    settlement.technicianNotes = dto.technicianNotes || null;
+    settlement.receiptEvidenceUrl = dto.receiptEvidenceUrl || null;
+    settlement.status = CashSettlementStatus.PENDING_CONFIRMATION;
+
+    return this.cashSettlementRepo.save(settlement);
+  }
+
+  async confirmCashSettlement(
+    orderId: string,
+    dto: { agreed: boolean; disputeReason?: string; confirmedAmount?: number },
+    actor: { id: string; role: string },
+  ): Promise<CashSettlement> {
+    const order = await this.orderRepo.findOneBy({ id: orderId });
+    if (!order) {
+      throw new BusinessException(ErrorCodes.NOT_FOUND, 'Service order not found');
+    }
+
+    const booking = await this.dataSource
+      .getRepository(Booking)
+      .findOneBy({ id: order.bookingId });
+    if (
+      booking?.customerId !== actor.id &&
+      actor.role !== Role.ADMIN &&
+      actor.role !== Role.SERVICE_MANAGER
+    ) {
+      throw new BusinessException(
+        ErrorCodes.OWNERSHIP_DENIED,
+        'Only customer can confirm cash payment',
+      );
+    }
+
+    const settlement = await this.cashSettlementRepo.findOne({
+      where: { serviceOrderId: orderId },
+    });
+    if (!settlement) {
+      throw new BusinessException(
+        ErrorCodes.NOT_FOUND,
+        'No cash settlement declaration found for this order',
+      );
+    }
+
+    if (dto.agreed) {
+      settlement.status = CashSettlementStatus.CONFIRMED;
+      settlement.confirmedByCustomerId = actor.id;
+      settlement.confirmedAmount =
+        dto.confirmedAmount ?? settlement.declaredAmount;
+      settlement.confirmedAt = new Date();
+      const savedSettlement = await this.cashSettlementRepo.save(settlement);
+
+      // Mark invoice and order as PAID
+      const invoice = await this.invoiceRepo.findOne({
+        where: { serviceOrderId: orderId },
+      });
+      if (invoice) {
+        invoice.paymentStatus = PaymentStatus.PAID;
+        invoice.paidAt = new Date();
+        await this.invoiceRepo.save(invoice);
+      }
+      await this.orderRepo.update(
+        { id: orderId },
+        { paymentStatus: PaymentStatus.PAID },
+      );
+
+      // Create CommissionDue (10% on Labor Total)
+      const assignment = await this.assignmentRepo.findOne({
+        where: { serviceOrderId: orderId, isActive: true },
+      });
+      const technicianId = assignment?.technicianId || settlement.declaredByTechnicianId;
+      const laborTotal = invoice
+        ? Number(invoice.laborTotal)
+        : Number(order.laborTotal || 0);
+      const dueAmount = invoice?.commissionAmount
+        ? Number(invoice.commissionAmount)
+        : Math.round(laborTotal * 0.1);
+
+      if (technicianId && dueAmount > 0) {
+        const existingDue = await this.commissionDueRepo.findOne({
+          where: { serviceOrderId: orderId },
+        });
+        if (!existingDue) {
+          const dueDate = new Date();
+          dueDate.setDate(dueDate.getDate() + 7); // 7-day payment window
+
+          const commissionDue = this.commissionDueRepo.create({
+            technicianId,
+            serviceOrderId: orderId,
+            cashSettlementId: savedSettlement.id,
+            laborTotalSnapshot: laborTotal,
+            commissionRateSnapshot: 0.1,
+            dueAmount,
+            status: CommissionDueStatus.PENDING,
+            dueDate,
+          });
+          await this.commissionDueRepo.save(commissionDue);
+        }
+      }
+
+      return savedSettlement;
+    } else {
+      settlement.status = CashSettlementStatus.DISPUTED;
+      settlement.managerResolutionReason =
+        dto.disputeReason || 'Customer disputed declared cash amount';
+      return this.cashSettlementRepo.save(settlement);
+    }
+  }
+
+  async getCashSettlement(orderId: string): Promise<CashSettlement | null> {
+    return this.cashSettlementRepo.findOne({
+      where: { serviceOrderId: orderId },
+      relations: ['declaredByTechnician', 'confirmedByCustomer'],
+    });
+  }
+
+  async getCommissionDues(
+    technicianId: string,
+  ): Promise<{ data: CommissionDue[]; totalDue: number }> {
+    const dues = await this.commissionDueRepo.find({
+      where: { technicianId },
+      relations: ['serviceOrder'],
+      order: { createdAt: 'DESC' },
+    });
+    const totalDue = dues
+      .filter((d) => d.status === CommissionDueStatus.PENDING)
+      .reduce((sum, d) => sum + Number(d.dueAmount), 0);
+    return { data: dues, totalDue };
+  }
+
+  async payCommissionDue(
+    dueId: string,
+    technicianId: string,
+  ): Promise<CommissionDue> {
+    const due = await this.commissionDueRepo.findOne({
+      where: { id: dueId, technicianId },
+    });
+    if (!due) {
+      throw new BusinessException(
+        ErrorCodes.NOT_FOUND,
+        'Commission due record not found',
+      );
+    }
+    if (due.status === CommissionDueStatus.PAID) {
+      return due;
+    }
+    due.status = CommissionDueStatus.PAID;
+    due.paidAt = new Date();
+    return this.commissionDueRepo.save(due);
+  }
+
+  async createWarrantyClaim(
+    orderId: string,
+    dto: { description: string },
+    customer: { id: string },
+  ): Promise<WarrantyClaim> {
+    const order = await this.orderRepo.findOneBy({ id: orderId });
+    if (!order) {
+      throw new BusinessException(ErrorCodes.NOT_FOUND, 'Service order not found');
+    }
+    const booking = await this.dataSource
+      .getRepository(Booking)
+      .findOneBy({ id: order.bookingId });
+    if (booking?.customerId !== customer.id) {
+      throw new BusinessException(
+        ErrorCodes.OWNERSHIP_DENIED,
+        'Only customer can submit warranty claim',
+      );
+    }
+
+    const assignment = await this.assignmentRepo.findOne({
+      where: { serviceOrderId: orderId, isActive: true },
+    });
+
+    const claim = this.warrantyClaimRepo.create({
+      serviceOrderId: orderId,
+      customerId: customer.id,
+      technicianId: assignment?.technicianId || '',
+      description: dto.description,
+      status: WarrantyClaimStatus.SUBMITTED,
+    });
+    return this.warrantyClaimRepo.save(claim);
+  }
+
+  async getWarrantyClaims(orderId: string): Promise<WarrantyClaim[]> {
+    return this.warrantyClaimRepo.find({
+      where: { serviceOrderId: orderId },
+      relations: ['customer', 'technician'],
+      order: { submittedAt: 'DESC' },
+    });
+  }
+
   /**
    * Get cancellations for SM/Admin board.
    */
@@ -622,6 +878,7 @@ export class ServiceOrdersService {
       waiveStrike?: boolean;
       waiveReason?: string;
       compensationDecision?: 'GRANTED' | 'REJECTED';
+      grantPriorityBoost?: boolean;
     },
     actor: { id: string; role: string },
   ): Promise<Cancellation> {
@@ -639,6 +896,22 @@ export class ServiceOrdersService {
         body.compensationDecision === 'GRANTED'
           ? CompensationStatus.GRANTED
           : CompensationStatus.REJECTED;
+    }
+
+    // Spec v1.2: Grant Priority Boost to technician if requested
+    if (body.grantPriorityBoost) {
+      const assignment = await this.assignmentRepo.findOne({
+        where: { serviceOrderId: cancellation.serviceOrderId },
+        order: { createdAt: 'DESC' },
+      });
+      if (assignment) {
+        const boostDays = await this.configService.getInt('priority_boost.duration_days', 7);
+        const boostUntil = new Date(Date.now() + boostDays * 24 * 60 * 60 * 1000);
+        await this.techProfileRepo.update(
+          { userId: assignment.technicianId },
+          { priorityBoostUntil: boostUntil },
+        );
+      }
     }
 
     if (body.waiveStrike && cancellation.strikeApplied) {
@@ -839,13 +1112,24 @@ export class ServiceOrdersService {
   }
 
   /**
-   * Generate invoice from approved quotation items + additional costs.
+   * Generate invoice from fixed price or quotation items + additional costs.
    */
   private async generateInvoice(
     orderId: string,
     manager: EntityManager,
   ): Promise<Invoice> {
-    // Get approved quotation
+    const order = await manager.findOne(ServiceOrder, {
+      where: { id: orderId },
+    });
+
+    const booking = order
+      ? await manager.findOne(Booking, {
+          where: { id: order.bookingId },
+          relations: ['service'],
+        })
+      : null;
+
+    // Get approved quotation (if any)
     const quotation = await manager.findOne(Quotation, {
       where: { serviceOrderId: orderId, status: QuotationStatus.APPROVED },
       relations: ['items'],
@@ -873,8 +1157,37 @@ export class ServiceOrdersService {
 
     const invoiceItems: Partial<InvoiceItem>[] = [];
 
-    // Quotation items
-    if (quotation?.items) {
+    // 1. Check if FIXED_PRICE booking
+    const isFixedPrice =
+      booking?.pricingModeSnapshot === ServicePricingMode.FIXED_PRICE ||
+      (!quotation && booking?.fixedUnitPriceSnapshot != null);
+
+    if (isFixedPrice && booking) {
+      const unitPrice = Number(
+        booking.fixedUnitPriceSnapshot ||
+          booking.service?.fixedPrice ||
+          booking.service?.basePrice ||
+          0,
+      );
+      const quantity = Math.max(1, Number(booking.quantity || 1));
+      const lineTotal = unitPrice * quantity;
+      laborTotal += lineTotal;
+
+      invoiceItems.push({
+        sourceType: 'FIXED_PRICE',
+        sourceItemId: booking.id,
+        type: CostItemType.LABOR,
+        description:
+          booking.scopeSnapshot ||
+          booking.service?.name ||
+          'Fixed Price Labor Package',
+        quantity,
+        unitPrice,
+        lineTotal,
+        warrantyDaysSnapshot: 30,
+      });
+    } else if (quotation?.items) {
+      // 2. Inspection-based quotation items
       for (const qi of quotation.items) {
         const lineTotal = Number(qi.lineTotal);
         if (qi.type === CostItemType.LABOR) laborTotal += lineTotal;
@@ -893,7 +1206,7 @@ export class ServiceOrdersService {
       }
     }
 
-    // Additional cost items
+    // 3. Approved Additional cost items
     for (const aci of additionalItems) {
       const lineTotal = Number(aci.lineTotal);
       if (aci.type === CostItemType.LABOR) laborTotal += lineTotal;
@@ -913,20 +1226,9 @@ export class ServiceOrdersService {
 
     const grandTotal = laborTotal + partsTotal;
 
-    // Commission calculation per D-02
-    const commissionBase = await this.configService.getString(
-      'commission.base',
-      'LABOR',
-    );
-    const commissionRateBps = await this.configService.getInt(
-      'commission.rate_bps',
-      1000,
-    );
-    const commissionBaseAmount =
-      commissionBase === 'LABOR' ? laborTotal : grandTotal;
-    const commissionAmount = Math.floor(
-      (commissionBaseAmount * commissionRateBps) / 10000,
-    );
+    // Spec v1.2: Platform commission is 10% on Final Labor Total. 0% on parts.
+    const commissionBase = 'LABOR';
+    const commissionAmount = Math.round(laborTotal * 0.1);
 
     // Create invoice
     const invoice = manager.create(Invoice, {
@@ -955,7 +1257,7 @@ export class ServiceOrdersService {
         );
         await manager.insert(WarrantyCoverage, {
           serviceOrderId: orderId,
-          invoiceItemId: undefined, // Will be set when we have the saved item ID
+          invoiceItemId: undefined,
           warrantyDaysSnapshot: item.warrantyDaysSnapshot,
           startsAt,
           expiresAt,

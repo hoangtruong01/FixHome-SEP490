@@ -17,8 +17,8 @@ export interface ApiError {
   statusCode: number;
   message: string;
   error?: string;
-  errors?: Array<{
+  errors?: {
     field: string;
     message: string;
-  }>;
+  }[];
 }
