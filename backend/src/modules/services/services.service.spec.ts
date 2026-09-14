@@ -37,13 +37,16 @@ describe('ServicesService', () => {
     basePrice: 150000,
     minPrice: 100000,
     maxPrice: 500000,
+    pricingMode: ServicePricingMode.INSPECTION_REQUIRED,
+    unit: 'lần',
+    fixedPrice: null,
+    scopeDescription: null,
     estimatedMinutes: 60,
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     basePriceMin: 100000,
     basePriceMax: 500000,
-    pricingMode: ServicePricingMode.INSPECTION_REQUIRED,
   });
 
   beforeEach(() => {
